@@ -55,101 +55,59 @@ function computeSettlement(transactions, members) {
 // ============================================================
 //  SETTLEMENT BAR COMPONENT — สไตล์ VS bar ตามรูป
 // ============================================================
-function SettlementBar({ balances, settlements, total }) {
+function SettlementBar({ balances, settlements }) {
   const grandTotal = balances.reduce((s, b) => s + b.paid, 0) || 1
-
   return (
     <div>
-      {/* VS bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
-        {balances.map((b, i) => (
-          <div key={b.name} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, flexDirection: i === 0 ? 'row' : 'row-reverse' }}>
-            {/* Avatar */}
-            <div style={{
-              width: 40, height: 40, borderRadius: '50%',
-              background: MEMBER_COLORS[i % MEMBER_COLORS.length] + '22',
-              color: MEMBER_COLORS[i % MEMBER_COLORS.length],
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 13, fontWeight: 700, flexShrink: 0
-            }}>
-              {b.name.substring(0, 2).toUpperCase()}
+      <div style={{ display:'flex', alignItems:'center', marginBottom:12 }}>
+        {balances[0] && (
+          <div style={{ flex:1, display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ width:40, height:40, borderRadius:'50%', background:MEMBER_COLORS[0]+'22', color:MEMBER_COLORS[0], display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700 }}>
+              {balances[0].name.substring(0,2).toUpperCase()}
             </div>
-            <div style={{ textAlign: i === 0 ? 'left' : 'right' }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>{b.name}</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: MEMBER_COLORS[i % MEMBER_COLORS.length] }}>{fmt(b.paid)}</div>
+            <div>
+              <div style={{ fontSize:14, fontWeight:600 }}>{balances[0].name}</div>
+              <div style={{ fontSize:20, fontWeight:700, color:MEMBER_COLORS[0] }}>{fmt(balances[0].paid)}</div>
             </div>
           </div>
-        ))}
-        {balances.length === 2 && (
-          <div style={{ fontSize: 13, color: '#aaa', flexShrink: 0 }}>vs</div>
+        )}
+        <div style={{ fontSize:13, color:'#bbb', padding:'0 12px', flexShrink:0 }}>vs</div>
+        {balances[1] && (
+          <div style={{ flex:1, display:'flex', alignItems:'center', gap:10, flexDirection:'row-reverse' }}>
+            <div style={{ width:40, height:40, borderRadius:'50%', background:MEMBER_COLORS[1]+'22', color:MEMBER_COLORS[1], display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700 }}>
+              {balances[1].name.substring(0,2).toUpperCase()}
+            </div>
+            <div style={{ textAlign:'right' }}>
+              <div style={{ fontSize:14, fontWeight:600 }}>{balances[1].name}</div>
+              <div style={{ fontSize:20, fontWeight:700, color:MEMBER_COLORS[1] }}>{fmt(balances[1].paid)}</div>
+            </div>
+          </div>
         )}
       </div>
-
-      {/* Progress bar */}
-      {balances.length >= 2 && (
-        <>
-          <div style={{ display: 'flex', height: 10, borderRadius: 6, overflow: 'hidden', gap: 2, marginBottom: 6 }}>
-            {balances.map((b, i) => {
-              const pct = Math.round(b.paid / grandTotal * 100)
-              return (
-                <div key={b.name} style={{
-                  width: pct + '%', background: MEMBER_COLORS[i % MEMBER_COLORS.length],
-                  borderRadius: i === 0 ? '6px 0 0 6px' : '0 6px 6px 0',
-                  transition: 'width 0.5s ease'
-                }} />
-              )
-            })}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            {balances.map((b, i) => {
-              const pct = Math.round(b.paid / grandTotal * 100)
-              return (
-                <div key={b.name} style={{ fontSize: 12, color: '#888' }}>
-                  {i === 0 ? `${b.name} ${pct}%` : `${pct}% ${b.name}`}
-                </div>
-              )
-            })}
-          </div>
-        </>
-      )}
-
-      {/* Settlement result */}
-      <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f0f0ec' }}>
-        {settlements.length === 0 ? (
-          <div style={{ fontSize: 14, color: '#1D9E75', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 16 }}>✓</span> ทุกคนจ่ายเท่ากัน ไม่ต้องชำระคืน
-          </div>
-        ) : settlements.map((s, i) => (
-          <div key={i} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: '#fff9f7', border: '1px solid #f5c4b3', borderRadius: 10,
-            padding: '12px 16px', marginBottom: 8
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#D85A30' }}>{s.from}</div>
-              <div style={{ fontSize: 16, color: '#ccc' }}>→</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#1D9E75' }}>{s.to}</div>
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#D85A30' }}>{fmt(s.amount)}</div>
+      <div style={{ display:'flex', height:10, borderRadius:6, overflow:'hidden', marginBottom:6 }}>
+        {balances.map((b,i) => (
+          <div key={b.name} style={{ width:Math.round(b.paid/grandTotal*100)+'%', background:MEMBER_COLORS[i%MEMBER_COLORS.length], transition:'width 0.5s' }} />
+        ))}
+      </div>
+      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:14 }}>
+        {balances.map((b,i) => (
+          <div key={b.name} style={{ fontSize:12, color:'#888' }}>
+            {i===0 ? `${b.name} ${Math.round(b.paid/grandTotal*100)}%` : `${Math.round(b.paid/grandTotal*100)}% ${b.name}`}
           </div>
         ))}
       </div>
-
-      {/* Balance detail */}
-      <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
-        {balances.map((b, i) => (
-          <div key={b.name} style={{
-            flex: 1, minWidth: 120, background: '#f8f8f5', borderRadius: 8, padding: '10px 14px',
-            borderLeft: `3px solid ${MEMBER_COLORS[i % MEMBER_COLORS.length]}`
-          }}>
-            <div style={{ fontSize: 12, color: '#888', marginBottom: 2 }}>{b.name} จ่ายไป</div>
-            <div style={{ fontSize: 16, fontWeight: 600 }}>{fmt(b.paid)}</div>
-            <div style={{ fontSize: 12, color: b.balance >= 0 ? '#1D9E75' : '#D85A30', marginTop: 2 }}>
-              {b.balance >= 0 ? `รับคืน ${fmt(b.balance)}` : `ต้องจ่ายเพิ่ม ${fmt(-b.balance)}`}
-            </div>
+      {settlements.length===0 ? (
+        <div style={{ fontSize:14, color:'#1D9E75' }}>✓ ทุกคนจ่ายเท่ากัน ไม่ต้องชำระคืน</div>
+      ) : settlements.map((s,i) => (
+        <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', background:'#fff9f7', border:'1px solid #f5c4b3', borderRadius:10, padding:'12px 16px', marginBottom:8 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <span style={{ fontSize:13, fontWeight:600, color:'#D85A30' }}>{s.from}</span>
+            <span style={{ color:'#ccc' }}>→</span>
+            <span style={{ fontSize:13, fontWeight:600, color:'#1D9E75' }}>{s.to}</span>
           </div>
-        ))}
-      </div>
+          <div style={{ fontSize:20, fontWeight:700, color:'#D85A30' }}>{fmt(s.amount)}</div>
+        </div>
+      ))}
     </div>
   )
 }
