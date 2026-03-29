@@ -25,18 +25,35 @@ async function fetchSheet(name) {
   })
 }
 
-function computeSettlement(transactions, members) {
+function computeSettlement(transactions, members, payments) {
   const paid = {}
   members.forEach(m => paid[m] = 0)
   let total = 0
+
   transactions.forEach(t => {
     if (t.type !== 'expense') return
     const amt = parseFloat(t.amount) || 0
     total += amt
-    if (paid[t.payer] !== undefined) paid[t.payer] += amt
+
+    // หาเจ้าของบัตร — เจ้าของบัตรเป็นคนจ่ายเสมอ
+    const pm    = (payments || []).find(p => p.id === t.payment_id)
+    const owner = pm ? pm.owner : t.payer
+
+    if (!owner || owner === 'ร่วมกัน') {
+      // บัตรร่วมกัน — หารเท่าทุกคน
+      const share = amt / (members.length || 1)
+      members.forEach(m => { if (paid[m] !== undefined) paid[m] += share })
+    } else {
+      // นับเป็นของเจ้าของบัตร
+      if (paid[owner] !== undefined) paid[owner] += amt
+    }
   })
+
   const perPerson = members.length > 0 ? total / members.length : 0
-  const balances  = members.map(m => ({ name: m, paid: paid[m] || 0, balance: (paid[m] || 0) - perPerson }))
+  const balances  = members.map(m => ({
+    name: m, paid: Math.round(paid[m] || 0),
+    balance: (paid[m] || 0) - perPerson
+  }))
   const settlements = []
   const debtors   = balances.filter(b => b.balance < -1).map(b => ({ ...b }))
   const creditors = balances.filter(b => b.balance >  1).map(b => ({ ...b }))
@@ -57,55 +74,58 @@ function computeSettlement(transactions, members) {
 // ============================================================
 function SettlementBar({ balances, settlements }) {
   const grandTotal = balances.reduce((s, b) => s + b.paid, 0) || 1
+
   return (
     <div>
-      <div style={{ display:'flex', alignItems:'center', marginBottom:12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
         {balances[0] && (
-          <div style={{ flex:1, display:'flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:40, height:40, borderRadius:'50%', background:MEMBER_COLORS[0]+'22', color:MEMBER_COLORS[0], display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700 }}>
-              {balances[0].name.substring(0,2).toUpperCase()}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: MEMBER_COLORS[0] + '22', color: MEMBER_COLORS[0], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+              {balances[0].name.substring(0, 2).toUpperCase()}
             </div>
             <div>
-              <div style={{ fontSize:14, fontWeight:600 }}>{balances[0].name}</div>
-              <div style={{ fontSize:20, fontWeight:700, color:MEMBER_COLORS[0] }}>{fmt(balances[0].paid)}</div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{balances[0].name}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: MEMBER_COLORS[0] }}>{fmt(balances[0].paid)}</div>
             </div>
           </div>
         )}
-        <div style={{ fontSize:13, color:'#bbb', padding:'0 12px', flexShrink:0 }}>vs</div>
+        <div style={{ fontSize: 13, color: '#bbb', padding: '0 12px', flexShrink: 0 }}>vs</div>
         {balances[1] && (
-          <div style={{ flex:1, display:'flex', alignItems:'center', gap:10, flexDirection:'row-reverse' }}>
-            <div style={{ width:40, height:40, borderRadius:'50%', background:MEMBER_COLORS[1]+'22', color:MEMBER_COLORS[1], display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700 }}>
-              {balances[1].name.substring(0,2).toUpperCase()}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, flexDirection: 'row-reverse' }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: MEMBER_COLORS[1] + '22', color: MEMBER_COLORS[1], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+              {balances[1].name.substring(0, 2).toUpperCase()}
             </div>
-            <div style={{ textAlign:'right' }}>
-              <div style={{ fontSize:14, fontWeight:600 }}>{balances[1].name}</div>
-              <div style={{ fontSize:20, fontWeight:700, color:MEMBER_COLORS[1] }}>{fmt(balances[1].paid)}</div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{balances[1].name}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: MEMBER_COLORS[1] }}>{fmt(balances[1].paid)}</div>
             </div>
           </div>
         )}
       </div>
-      <div style={{ display:'flex', height:10, borderRadius:6, overflow:'hidden', marginBottom:6 }}>
-        {balances.map((b,i) => (
-          <div key={b.name} style={{ width:Math.round(b.paid/grandTotal*100)+'%', background:MEMBER_COLORS[i%MEMBER_COLORS.length], transition:'width 0.5s' }} />
+      <div style={{ display: 'flex', height: 10, borderRadius: 6, overflow: 'hidden', marginBottom: 6 }}>
+        {balances.map((b, i) => (
+          <div key={b.name} style={{ width: Math.round(b.paid / grandTotal * 100) + '%', background: MEMBER_COLORS[i % MEMBER_COLORS.length], transition: 'width 0.5s' }} />
         ))}
       </div>
-      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:14 }}>
-        {balances.map((b,i) => (
-          <div key={b.name} style={{ fontSize:12, color:'#888' }}>
-            {i===0 ? `${b.name} ${Math.round(b.paid/grandTotal*100)}%` : `${Math.round(b.paid/grandTotal*100)}% ${b.name}`}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
+        {balances.map((b, i) => (
+          <div key={b.name} style={{ fontSize: 12, color: '#888' }}>
+            {i === 0 ? `${b.name} ${Math.round(b.paid / grandTotal * 100)}%` : `${Math.round(b.paid / grandTotal * 100)}% ${b.name}`}
           </div>
         ))}
       </div>
-      {settlements.length===0 ? (
-        <div style={{ fontSize:14, color:'#1D9E75' }}>✓ ทุกคนจ่ายเท่ากัน ไม่ต้องชำระคืน</div>
-      ) : settlements.map((s,i) => (
-        <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', background:'#fff9f7', border:'1px solid #f5c4b3', borderRadius:10, padding:'12px 16px', marginBottom:8 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{ fontSize:13, fontWeight:600, color:'#D85A30' }}>{s.from}</span>
-            <span style={{ color:'#ccc' }}>→</span>
-            <span style={{ fontSize:13, fontWeight:600, color:'#1D9E75' }}>{s.to}</span>
+      {settlements.length === 0 ? (
+        <div style={{ fontSize: 14, color: '#1D9E75', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>✓</span> ทุกคนจ่ายเท่ากัน ไม่ต้องชำระคืน
+        </div>
+      ) : settlements.map((s, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff9f7', border: '1px solid #f5c4b3', borderRadius: 10, padding: '12px 16px', marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#D85A30' }}>{s.from}</span>
+            <span style={{ color: '#ccc' }}>→</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#1D9E75' }}>{s.to}</span>
           </div>
-          <div style={{ fontSize:20, fontWeight:700, color:'#D85A30' }}>{fmt(s.amount)}</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#D85A30' }}>{fmt(s.amount)}</div>
         </div>
       ))}
     </div>
@@ -157,7 +177,7 @@ export default function App() {
 
   const expenses = filtered.filter(t => t.type === 'expense')
   const income   = filtered.filter(t => t.type === 'income').reduce((s, t) => s + (parseFloat(t.amount) || 0), 0)
-  const { total, perPerson, balances, settlements } = computeSettlement(filtered, members)
+  const { total, perPerson, balances, settlements } = computeSettlement(filtered, members, payments)
 
   const byCat = {}
   expenses.forEach(t => { byCat[t.category] = (byCat[t.category] || 0) + (parseFloat(t.amount) || 0) })
