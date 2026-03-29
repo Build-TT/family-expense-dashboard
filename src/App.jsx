@@ -25,6 +25,14 @@ async function fetchSheet(name) {
   })
 }
 
+
+// เจ้าของบัตรจริงๆ: เงินสด = ผู้จ่าย, ร่วมกัน = หารเท่า, อื่นๆ = เจ้าของบัตร
+function resolveOwner(t, pm) {
+  if (!pm) return t.payer  // ไม่มีบัตร → ใช้ผู้จ่าย
+  if (pm.type === 'cash') return t.payer  // เงินสด → ใช้ผู้จ่าย
+  if (!pm.owner || pm.owner === 'ร่วมกัน') return 'ร่วมกัน'
+  return pm.owner
+}
 function computeSettlement(transactions, members, payments) {
   const paid = {}
   members.forEach(m => paid[m] = 0)
@@ -35,16 +43,13 @@ function computeSettlement(transactions, members, payments) {
     const amt = parseFloat(t.amount) || 0
     total += amt
 
-    // หาเจ้าของบัตร — เจ้าของบัตรเป็นคนจ่ายเสมอ
     const pm    = (payments || []).find(p => p.id === t.payment_id)
-    const owner = pm ? pm.owner : t.payer
+    const owner = resolveOwner(t, pm)
 
-    if (!owner || owner === 'ร่วมกัน') {
-      // บัตรร่วมกัน — หารเท่าทุกคน
+    if (owner === 'ร่วมกัน') {
       const share = amt / (members.length || 1)
       members.forEach(m => { if (paid[m] !== undefined) paid[m] += share })
     } else {
-      // นับเป็นของเจ้าของบัตร
       if (paid[owner] !== undefined) paid[owner] += amt
     }
   })
@@ -188,7 +193,7 @@ export default function App() {
   expenses.forEach(t => {
     const pm    = payments.find(p => p.id === t.payment_id)
     const label = pm ? pm.name + (pm.last4 ? ' ···' + pm.last4 : '') : 'ไม่ระบุ'
-    const owner = pm ? pm.owner : t.payer
+    const owner = resolveOwner(t, pm)
     if (!byPay[label]) byPay[label] = { total: 0, owner }
     byPay[label].total += (parseFloat(t.amount) || 0)
   })
@@ -198,9 +203,9 @@ export default function App() {
   members.forEach(m => byOwner[m] = 0)
   expenses.forEach(t => {
     const pm    = payments.find(p => p.id === t.payment_id)
-    const owner = pm ? pm.owner : t.payer
+    const owner = resolveOwner(t, pm)
     const amt   = parseFloat(t.amount) || 0
-    if (owner === 'ร่วมกัน' || !owner) {
+    if (owner === 'ร่วมกัน') {
       members.forEach(m => { if (byOwner[m] !== undefined) byOwner[m] += amt / members.length })
     } else {
       if (byOwner[owner] !== undefined) byOwner[owner] += amt
@@ -370,7 +375,7 @@ export default function App() {
                         {isExp ? '-' : '+'}{fmt(parseFloat(t.amount) || 0)}
                       </div>
                       {(() => {
-                        const pmOwner = pm ? pm.owner : t.payer
+                        const pmOwner  = resolveOwner(t, pm)
                         const ownerIdx = members.indexOf(pmOwner)
                         const ownerColor = ownerIdx >= 0 ? MEMBER_COLORS[ownerIdx % MEMBER_COLORS.length] : '#aaa'
                         return <div style={{ fontSize: 11, color: ownerColor, fontWeight: 600 }}>{pmOwner || t.payer}</div>
