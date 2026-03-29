@@ -1,10 +1,6 @@
-// ============================================================
-//  LIFF Utilities — shared across all LIFF pages
-// ============================================================
-
-export const SHEET_ID  = import.meta.env.VITE_SHEET_ID || ''
-export const API_KEY   = import.meta.env.VITE_API_KEY  || ''
-export const GAS_URL   = import.meta.env.VITE_GAS_URL  || '' // Web App URL จาก Apps Script
+export const SHEET_ID = import.meta.env.VITE_SHEET_ID || ''
+export const API_KEY  = import.meta.env.VITE_API_KEY  || ''
+export const GAS_URL  = import.meta.env.VITE_GAS_URL  || ''
 
 const BASE = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values`
 
@@ -22,25 +18,22 @@ export async function fetchSheet(name) {
   })
 }
 
-export async function sendToGAS(action, payload) {
-  const res = await fetch(GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, ...payload })
-  })
+export async function sendToGAS(payload) {
+  // ส่งเป็น GET + query string เพื่อหลีกเลี่ยง CORS
+  const params = new URLSearchParams(
+    Object.fromEntries(
+      Object.entries(payload).map(([k, v]) => [k, String(v)])
+    )
+  )
+  const res = await fetch(`${GAS_URL}?${params.toString()}`)
+  if (!res.ok) throw new Error('GAS error: ' + res.status)
   return res.json()
-}
-
-export function formatDateTH(dateStr) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 export function todayISO() {
   const now = new Date()
-  const y   = now.getFullYear()
-  const m   = String(now.getMonth() + 1).padStart(2, '0')
-  const d   = String(now.getDate()).padStart(2, '0')
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
 }
