@@ -183,11 +183,28 @@ export default function App() {
   expenses.forEach(t => { byCat[t.category] = (byCat[t.category] || 0) + (parseFloat(t.amount) || 0) })
   const catData = Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value: Math.round(value) }))
 
+  // รายจ่ายตามวิธีชำระ + เจ้าของบัตร
   const byPay = {}
   expenses.forEach(t => {
     const pm    = payments.find(p => p.id === t.payment_id)
     const label = pm ? pm.name + (pm.last4 ? ' ···' + pm.last4 : '') : 'ไม่ระบุ'
-    byPay[label] = (byPay[label] || 0) + (parseFloat(t.amount) || 0)
+    const owner = pm ? pm.owner : t.payer
+    if (!byPay[label]) byPay[label] = { total: 0, owner }
+    byPay[label].total += (parseFloat(t.amount) || 0)
+  })
+
+  // สรุปรายจ่ายรวมของแต่ละคน (จากเจ้าของบัตร)
+  const byOwner = {}
+  members.forEach(m => byOwner[m] = 0)
+  expenses.forEach(t => {
+    const pm    = payments.find(p => p.id === t.payment_id)
+    const owner = pm ? pm.owner : t.payer
+    const amt   = parseFloat(t.amount) || 0
+    if (owner === 'ร่วมกัน' || !owner) {
+      members.forEach(m => { if (byOwner[m] !== undefined) byOwner[m] += amt / members.length })
+    } else {
+      if (byOwner[owner] !== undefined) byOwner[owner] += amt
+    }
   })
 
   // map category name → icon จาก sheet
@@ -287,17 +304,37 @@ export default function App() {
         {/* วิธีชำระ */}
         {Object.keys(byPay).length > 0 && (
           <Section title="รายจ่ายตามวิธีชำระ">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {Object.entries(byPay).sort((a, b) => b[1] - a[1]).map(([name, val]) => (
-                <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 110, fontSize: 13, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
-                  <div style={{ flex: 1, background: '#f0f0ec', borderRadius: 4, height: 8, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', background: '#378ADD', borderRadius: 4, width: Math.round(val / total * 100) + '%' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              {Object.entries(byPay).sort((a, b) => b[1].total - a[1].total).map(([name, data]) => {
+                const ownerIdx   = members.indexOf(data.owner)
+                const barColor   = ownerIdx >= 0 ? MEMBER_COLORS[ownerIdx % MEMBER_COLORS.length] : '#888780'
+                const ownerLabel = data.owner || 'ไม่ระบุ'
+                return (
+                  <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 120, minWidth: 120, flexShrink: 0 }}>
+                      <div style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+                      <div style={{ fontSize: 11, color: barColor, fontWeight: 600 }}>{ownerLabel}</div>
+                    </div>
+                    <div style={{ flex: 1, background: '#f0f0ec', borderRadius: 4, height: 8, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', background: barColor, borderRadius: 4, width: Math.round(data.total / total * 100) + '%' }} />
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 600, minWidth: 72, textAlign: 'right' }}>{fmt(data.total)}</div>
+                    <div style={{ fontSize: 11, color: '#888', minWidth: 30, textAlign: 'right' }}>{Math.round(data.total / total * 100)}%</div>
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 600, minWidth: 72, textAlign: 'right' }}>{fmt(val)}</div>
-                  <div style={{ fontSize: 11, color: '#888', minWidth: 30, textAlign: 'right' }}>{Math.round(val / total * 100)}%</div>
-                </div>
-              ))}
+                )
+              })}
+            </div>
+            <div style={{ borderTop: '1px solid #f0f0ec', paddingTop: 12 }}>
+              <div style={{ fontSize: 12, color: '#888', marginBottom: 8, fontWeight: 600 }}>สรุปรายจ่ายตามเจ้าของบัตร</div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {members.map((m, i) => (
+                  <div key={m} style={{ flex: 1, minWidth: 100, background: '#f8f8f5', borderRadius: 8, padding: '10px 14px', borderLeft: `3px solid ${MEMBER_COLORS[i % MEMBER_COLORS.length]}` }}>
+                    <div style={{ fontSize: 12, color: '#888' }}>{m}</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: MEMBER_COLORS[i % MEMBER_COLORS.length] }}>{fmt(byOwner[m] || 0)}</div>
+                    <div style={{ fontSize: 11, color: '#aaa' }}>{Math.round((byOwner[m] || 0) / total * 100)}%</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </Section>
         )}
@@ -332,7 +369,12 @@ export default function App() {
                       <div style={{ fontSize: 14, fontWeight: 600, color: isExp ? '#D85A30' : '#1D9E75' }}>
                         {isExp ? '-' : '+'}{fmt(parseFloat(t.amount) || 0)}
                       </div>
-                      <div style={{ fontSize: 11, color: '#aaa' }}>{t.payer}</div>
+                      {(() => {
+                        const pmOwner = pm ? pm.owner : t.payer
+                        const ownerIdx = members.indexOf(pmOwner)
+                        const ownerColor = ownerIdx >= 0 ? MEMBER_COLORS[ownerIdx % MEMBER_COLORS.length] : '#aaa'
+                        return <div style={{ fontSize: 11, color: ownerColor, fontWeight: 600 }}>{pmOwner || t.payer}</div>
+                      })()}
                     </div>
                   </div>
                 )
