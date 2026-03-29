@@ -29,8 +29,12 @@ async function fetchSheet(name) {
 // เจ้าของบัตรจริงๆ: เงินสด = ผู้จ่าย, ร่วมกัน = หารเท่า, อื่นๆ = เจ้าของบัตร
 function resolveOwner(t, pm) {
   if (!pm) return t.payer  // ไม่มีบัตร → ใช้ผู้จ่าย
-  if (pm.type === 'cash') return t.payer  // เงินสด → ใช้ผู้จ่าย
-  if (!pm.owner || pm.owner === 'ร่วมกัน') return 'ร่วมกัน'
+  // เงินสด → ใช้ผู้จ่าย (รองรับทุก format: cash, Cash, เงินสด)
+  const type = (pm.type || '').toLowerCase().trim()
+  if (type === 'cash' || type === 'เงินสด') return t.payer
+  // owner ว่าง → ใช้ผู้จ่าย (ไม่ใช่ร่วมกัน)
+  if (!pm.owner || pm.owner.trim() === '') return t.payer
+  if (pm.owner === 'ร่วมกัน') return 'ร่วมกัน'
   return pm.owner
 }
 function computeSettlement(transactions, members, payments) {
