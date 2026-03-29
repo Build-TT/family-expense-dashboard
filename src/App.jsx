@@ -189,12 +189,15 @@ export default function App() {
   const catData = Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value: Math.round(value) }))
 
   // รายจ่ายตามวิธีชำระ + เจ้าของบัตร
+  // ใช้ "ชื่อบัตร|owner" เป็น key เพื่อแยกบัตรชื่อเดียวกันแต่คนละเจ้าของ
   const byPay = {}
   expenses.forEach(t => {
-    const pm    = payments.find(p => p.id === t.payment_id)
-    const label = pm ? pm.name + (pm.last4 ? ' ···' + pm.last4 : '') : 'ไม่ระบุ'
-    const owner = resolveOwner(t, pm)
-    if (!byPay[label]) byPay[label] = { total: 0, owner }
+    const pm      = payments.find(p => p.id === t.payment_id)
+    const pmName  = pm ? pm.name + (pm.last4 ? ' ···' + pm.last4 : '') : 'ไม่ระบุ'
+    const owner   = resolveOwner(t, pm)
+    const label   = pmName + (owner && owner !== 'ร่วมกัน' ? ' (' + owner + ')' : '')
+    const dispName = pmName
+    if (!byPay[label]) byPay[label] = { total: 0, owner, dispName }
     byPay[label].total += (parseFloat(t.amount) || 0)
   })
 
@@ -310,14 +313,14 @@ export default function App() {
         {Object.keys(byPay).length > 0 && (
           <Section title="รายจ่ายตามวิธีชำระ">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-              {Object.entries(byPay).sort((a, b) => b[1].total - a[1].total).map(([name, data]) => {
+              {Object.entries(byPay).sort((a, b) => b[1].total - a[1].total).map(([key, data]) => {
                 const ownerIdx   = members.indexOf(data.owner)
                 const barColor   = ownerIdx >= 0 ? MEMBER_COLORS[ownerIdx % MEMBER_COLORS.length] : '#888780'
                 const ownerLabel = data.owner || 'ไม่ระบุ'
                 return (
-                  <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{ width: 120, minWidth: 120, flexShrink: 0 }}>
-                      <div style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+                      <div style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.dispName}</div>
                       <div style={{ fontSize: 11, color: barColor, fontWeight: 600 }}>{ownerLabel}</div>
                     </div>
                     <div style={{ flex: 1, background: '#f0f0ec', borderRadius: 4, height: 8, overflow: 'hidden' }}>
