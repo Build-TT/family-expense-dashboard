@@ -468,28 +468,6 @@ export default function App() {
           </Section>
         )}
 
-        {/* DIRECT DEBT */}
-        {directs.length > 0 && (
-          <Section title={`หนี้โดยตรง (${directs.length} รายการ)`}>
-            {directs.map((t, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #f5f5f0' }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: '#fff4e6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>💸</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>{t.name}</div>
-                  <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
-                    <span>{t.date}</span>
-                    <span> · {t.payer} → {t.to}</span>
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#BA7517' }}>฿{(parseFloat(t.amount) || 0).toLocaleString()}</div>
-                  <div style={{ fontSize: 11, color: '#aaa' }}>โดยตรง</div>
-                </div>
-              </div>
-            ))}
-          </Section>
-        )}
-
         {/* TRANSACTION LIST */}
         <Section title={`รายการทั้งหมด (${expenses.length} รายการ)`}>
           {expenses.length === 0
@@ -522,6 +500,28 @@ export default function App() {
               })
           }
         </Section>
+
+        {/* DIRECT DEBT */}
+        {directs.length > 0 && (
+          <Section title={`หนี้โดยตรง (${directs.length} รายการ)`}>
+            {directs.map((t, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #f5f5f0' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: '#fff4e6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>💸</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 500 }}>{t.name}</div>
+                  <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
+                    <span>{t.date}</span>
+                    <span> · {t.payer} → {t.to}</span>
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#BA7517' }}>฿{(parseFloat(t.amount) || 0).toLocaleString()}</div>
+                  <div style={{ fontSize: 11, color: '#aaa' }}>โดยตรง</div>
+                </div>
+              </div>
+            ))}
+          </Section>
+        )}
       </>}
     </div>
   )
