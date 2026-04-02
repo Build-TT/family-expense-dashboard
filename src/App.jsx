@@ -524,8 +524,8 @@ export default function App() {
           </Section>
         )}
       </>}
+      <BottomNav />
     </div>
-    <BottomNav />
   )
 }
 
