@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 import BottomNav from '../components/BottomNav.jsx'
-import BottomNav from './components/BottomNav.jsx'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from 'recharts'
 
 const SHEET_ID     = import.meta.env.VITE_SHEET_ID  || 'YOUR_SPREADSHEET_ID'
