@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import BottomNav from './components/BottomNav.jsx'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from 'recharts'
 
 const SHEET_ID     = import.meta.env.VITE_SHEET_ID  || 'YOUR_SPREADSHEET_ID'
@@ -344,7 +345,7 @@ export default function App() {
   const isCurrentMonth = year === now.getFullYear() && month === now.getMonth()
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px 16px 48px', fontFamily: 'system-ui,sans-serif', background: '#f8f8f5', minHeight: '100vh' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px 16px 90px', fontFamily: 'system-ui,sans-serif', background: '#f8f8f5', minHeight: '100vh' }}>
 
       {/* HEADER */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
@@ -524,6 +525,7 @@ export default function App() {
         )}
       </>}
     </div>
+    <BottomNav />
   )
 }
 

@@ -5,6 +5,7 @@ import AddTransaction    from './liff/AddTransaction.jsx'
 import ManagePayments    from './liff/ManagePayments.jsx'
 import ManageCategories  from './liff/ManageCategories.jsx'
 import ManagePayers      from './liff/ManagePayers.jsx'
+import BottomNav         from './components/BottomNav.jsx'
 import './index.css'
 
 function Router() {
@@ -17,5 +18,10 @@ function Router() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode><Router /></React.StrictMode>
+  <React.StrictMode>
+    <div style={{ paddingBottom: 60 }}>
+      <Router />
+    </div>
+    <BottomNav />
+  </React.StrictMode>
 )

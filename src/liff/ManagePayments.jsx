@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { fetchSheet, sendToGAS } from './utils'
+import BottomNav from '../components/BottomNav.jsx'
 
 const TYPE_OPTIONS = [
   { value: 'credit',  label: '💳 บัตรเครดิต' },
@@ -11,7 +12,7 @@ const TYPE_OPTIONS = [
 ]
 
 const S = {
-  wrap:    { maxWidth: 480, margin: '0 auto', padding: '0 0 20px', fontFamily: 'system-ui,sans-serif' },
+  wrap:    { maxWidth: 480, margin: '0 auto', padding: '0 0 80px', fontFamily: 'system-ui,sans-serif' },
   header:  { background: '#378ADD', color: '#fff', padding: '16px 20px' },
   htitle:  { fontSize: 18, fontWeight: 700, margin: 0 },
   body:    { padding: '16px 20px' },
@@ -187,6 +188,7 @@ export default function ManagePayments() {
           {saving ? 'กำลังเพิ่ม...' : '+ เพิ่มวิธีชำระ'}
         </button>
       </div>
+    <BottomNav />
     </div>
   )
 }

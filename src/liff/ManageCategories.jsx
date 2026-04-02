@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { fetchSheet, sendToGAS } from './utils'
+import BottomNav from '../components/BottomNav.jsx'
 
 const ICON_OPTIONS = ['🍜','🛒','⚡','🚕','🎬','💊','🛍️','🏠','🐕','💳','✈️','🔨','🚗','📱','📌','🏋️','🎵','📚','🧴','🍺']
 
 const S = {
-  wrap:    { maxWidth: 480, margin: '0 auto', padding: '0 0 20px', fontFamily: 'system-ui,sans-serif' },
+  wrap:    { maxWidth: 480, margin: '0 auto', padding: '0 0 80px', fontFamily: 'system-ui,sans-serif' },
   header:  { background: '#7F77DD', color: '#fff', padding: '16px 20px' },
   htitle:  { fontSize: 18, fontWeight: 700, margin: 0 },
   body:    { padding: '16px 20px' },
@@ -149,6 +150,7 @@ export default function ManageCategories() {
           {saving ? 'กำลังเพิ่ม...' : '+ เพิ่มหมวดหมู่'}
         </button>
       </div>
+    <BottomNav />
     </div>
   )
 }
