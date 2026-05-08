@@ -543,7 +543,7 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
       : expenses.filter(tx => (tx.payment_id || '') === filterPm)
   )
 
-  const pmNameShort = (pmStr) => (pmStr || '').replace(/\s*\(.+\)$/, '').trim()
+  const pmNameShort = (pmStr) => (pmStr || '').trim()  // แสดงชื่อพร้อมเจ้าของ
 
   const openEdit = (tx) => {
     setEditingTx(tx)
