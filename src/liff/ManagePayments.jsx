@@ -1,194 +1,238 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { fetchSheet, sendToGAS } from './utils'
 import BottomNav from '../components/BottomNav.jsx'
+import LangToggle from '../components/LangToggle.jsx'
+import { getLang, t } from '../i18n'
 
-const TYPE_OPTIONS = [
-  { value: 'credit',  label: '💳 บัตรเครดิต' },
-  { value: 'debit',   label: '💳 บัตรเดบิต' },
-  { value: 'prompt',  label: '📱 พร้อมเพย์' },
-  { value: 'ewallet', label: '👜 E-Wallet' },
-  { value: 'cash',    label: '💵 เงินสด' },
-  { value: 'other',   label: '🔖 อื่นๆ' },
-]
+const TYPE_ICONS = { cash: '💵', credit: '💳', debit: '🏧', promptpay: '📱', ewallet: '👛', other: '💰' }
+const TYPE_OPTIONS = ['cash','credit','debit','promptpay','ewallet','other']
 
 const S = {
-  wrap:    { maxWidth: 480, margin: '0 auto', padding: '0 0 80px', fontFamily: 'system-ui,sans-serif' },
-  header:  { background: '#378ADD', color: '#fff', padding: '16px 20px' },
-  htitle:  { fontSize: 18, fontWeight: 700, margin: 0 },
-  body:    { padding: '16px 20px' },
-  card:    { background: '#fff', border: '1px solid #eee', borderRadius: 12, padding: '12px 14px', marginBottom: 8 },
-  cardRow: { display: 'flex', alignItems: 'center', gap: 10 },
-  cardInfo:{ flex: 1 },
-  cardName:{ fontSize: 14, fontWeight: 600 },
-  cardSub: { fontSize: 12, color: '#888', marginTop: 2 },
-  btnDel:  { background: '#FCEBEB', border: 'none', color: '#A32D2D', borderRadius: 8, padding: '6px 10px', fontSize: 12, cursor: 'pointer', flexShrink: 0 },
-  btnEdit: { background: '#E6F1FB', border: 'none', color: '#0C447C', borderRadius: 8, padding: '6px 10px', fontSize: 12, cursor: 'pointer', flexShrink: 0 },
-  btnSave: { background: '#1D9E75', border: 'none', color: '#fff', borderRadius: 8, padding: '10px', fontSize: 13, cursor: 'pointer', flex: 1, fontWeight: 600 },
-  btnCan:  { background: '#f0f0ec', border: 'none', color: '#555', borderRadius: 8, padding: '10px', fontSize: 13, cursor: 'pointer', flex: 1 },
-  editBox: { marginTop: 10, paddingTop: 10, borderTop: '1px solid #f0f0ec' },
-  divider: { borderTop: '1px solid #eee', margin: '20px 0' },
-  section: { fontSize: 14, fontWeight: 700, color: '#555', marginBottom: 12 },
-  group:   { marginBottom: 12 },
-  label:   { fontSize: 13, color: '#555', marginBottom: 5, display: 'block', fontWeight: 600 },
-  input:   { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e0e0d8', fontSize: 14, boxSizing: 'border-box' },
-  select:  { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e0e0d8', fontSize: 14, background: '#fff', boxSizing: 'border-box' },
-  grid2:   { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 },
-  btnAdd:  { width: '100%', padding: '12px', borderRadius: 10, border: 'none', background: '#378ADD', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginTop: 4 },
-  toast:   { position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#1a1a1a', color: '#fff', padding: '10px 20px', borderRadius: 20, fontSize: 14, zIndex: 999, whiteSpace: 'nowrap' },
+  wrap:   { maxWidth: 480, margin: '0 auto', padding: '0 0 130px', fontFamily: 'system-ui,sans-serif' },
+  header: { background: '#BA7517', color: '#fff', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  body:   { padding: '16px 20px' },
+  label:  { fontSize: 13, color: '#555', marginBottom: 6, display: 'block', fontWeight: 600 },
+  input:  { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e0e0d8', fontSize: 15, outline: 'none', boxSizing: 'border-box' },
+  select: { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e0e0d8', fontSize: 15, background: '#fff', boxSizing: 'border-box' },
+  toast:  { position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#1a1a1a', color: '#fff', padding: '10px 20px', borderRadius: 20, fontSize: 14, zIndex: 999 },
+  iconBtn:{ width: 32, height: 32, border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
 }
 
 export default function ManagePayments() {
-  const [payments,  setPayments]  = useState([])
-  const [members,   setMembers]   = useState([])
-  const [loading,   setLoading]   = useState(true)
-  const [toast,     setToast]     = useState('')
-  const [saving,    setSaving]    = useState(false)
-  const [editId,    setEditId]    = useState(null)
-  const [editName,  setEditName]  = useState('')
-  const [editLast4, setEditLast4] = useState('')
-  const [editType,  setEditType]  = useState('credit')
-  const [editOwner, setEditOwner] = useState('')
-  const [newType,   setNewType]   = useState('credit')
-  const [newName,   setNewName]   = useState('')
-  const [newLast4,  setNewLast4]  = useState('')
-  const [newOwner,  setNewOwner]  = useState('')
+  const [lang, setLang]               = useState(getLang())
+  const [pays, setPays]               = useState([])
+  const [members, setMembers]         = useState([])
+  const [loading, setLoading]         = useState(true)
+  const [saving, setSaving]           = useState(false)
+  const [savingOrder, setSavingOrder] = useState(false)
+  const [toast, setToast]             = useState('')
+  const [form, setForm]               = useState({ name: '', type: 'credit', last4: '', owner: '' })
+  const [editing, setEditing]         = useState(null)
+  const [dragging, setDragging]       = useState(null)
+  const [orderChanged, setOrderChanged] = useState(false)
+  const dragOver = useRef(null)
 
-  const load = () => {
-    setLoading(true)
-    Promise.all([fetchSheet('payment_methods'), fetchSheet('members')]).then(([pays, mems]) => {
-      setPayments(pays.filter(p => p.active === 'TRUE'))
-      setMembers(mems.filter(m => m.active === 'TRUE'))
-      if (mems.length > 0 && !newOwner) setNewOwner(mems[0].name)
-      setLoading(false)
-    })
-  }
+  useEffect(() => {
+    const h = () => setLang(getLang())
+    window.addEventListener('langchange', h)
+    return () => window.removeEventListener('langchange', h)
+  }, [])
   useEffect(() => { load() }, [])
+
+  const load = async () => {
+    setLoading(true)
+    const [pData, mData] = await Promise.all([fetchSheet('payment_methods'), fetchSheet('members')])
+    const sorted = [...pData].sort((a, b) => (parseInt(a.order) || 999) - (parseInt(b.order) || 999))
+    setPays(sorted.map((p, i) => ({ ...p, order: p.order || String(i + 1) })))
+    setMembers(mData.filter(m => m.active === 'TRUE'))
+    setLoading(false)
+  }
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500) }
 
-  const startEdit = (p) => {
-    setEditId(p.id); setEditName(p.name)
-    setEditLast4(p.last4); setEditType(p.type); setEditOwner(p.owner)
+  // ===== DRAG & DROP =====
+  const onDragStart = (i) => setDragging(i)
+  const onDragEnter = (i) => { dragOver.current = i }
+  const onDragEnd   = () => {
+    if (dragging === null || dragOver.current === null || dragging === dragOver.current) { setDragging(null); return }
+    const next = [...pays]
+    const [moved] = next.splice(dragging, 1)
+    next.splice(dragOver.current, 0, moved)
+    setPays(next.map((p, i) => ({ ...p, order: String(i + 1) })))
+    setDragging(null); dragOver.current = null; setOrderChanged(true)
   }
-  const cancelEdit = () => setEditId(null)
 
-  const handleEdit = async (id) => {
-    if (!editName.trim()) { showToast('กรุณาใส่ชื่อบัตร'); return }
+  // ===== UP / DOWN =====
+  const moveItem = (i, dir) => {
+    const next = [...pays], target = i + dir
+    if (target < 0 || target >= next.length) return
+    ;[next[i], next[target]] = [next[target], next[i]]
+    setPays(next.map((p, j) => ({ ...p, order: String(j + 1) })))
+    setOrderChanged(true)
+  }
+
+  // ===== MANUAL ORDER =====
+  const handleOrderInput = (id, val) => {
+    const num = parseInt(val)
+    if (isNaN(num) || num < 1) return
+    setPays(prev => {
+      const idx = prev.findIndex(p => p.id === id)
+      if (idx === -1) return prev
+      const next = [...prev]
+      const [item] = next.splice(idx, 1)
+      next.splice(Math.min(num - 1, next.length), 0, item)
+      return next.map((p, j) => ({ ...p, order: String(j + 1) }))
+    })
+    setOrderChanged(true)
+  }
+
+  // ===== SAVE ORDER =====
+  const saveOrder = async () => {
+    setSavingOrder(true)
+    const orders = pays.map((p, i) => ({ id: p.id, order: i + 1 }))
+    await sendToGAS({ action: 'reorderPayments', orders: JSON.stringify(orders) })
+    setOrderChanged(false)
+    showToast(t('success', lang))
+    setSavingOrder(false)
+  }
+
+  // ===== ADD / EDIT =====
+  const handleSave = async () => {
+    if (!form.name.trim()) return
     setSaving(true)
-    try {
-      const data = await sendToGAS({ action: 'editPayment', id, type: editType, name: editName.trim(), last4: editLast4.trim(), owner: editOwner })
-      if (data.status === 'ok') { showToast('✅ แก้ไขเรียบร้อยแล้ว'); setEditId(null); load() }
-      else showToast('❌ ' + (data.message || 'เกิดข้อผิดพลาด'))
-    } catch { showToast('❌ เชื่อมต่อไม่ได้') }
+    const action  = editing ? 'editPayment' : 'addPayment'
+    const payload = { action, ...form, name: form.name.trim(), owner: form.owner || 'ร่วมกัน' }
+    if (editing) payload.id = editing
+    const res = await sendToGAS(payload)
+    if (res.status === 'ok') { showToast(t('success', lang)); setForm({ name: '', type: 'credit', last4: '', owner: '' }); setEditing(null); await load() }
+    else showToast(t('error', lang))
     setSaving(false)
   }
 
-  const handleAdd = async () => {
-    if (!newName.trim()) { showToast('กรุณาใส่ชื่อบัตร'); return }
-    setSaving(true)
-    try {
-      const data = await sendToGAS({ action: 'addPayment', type: newType, name: newName.trim(), last4: newLast4.trim(), owner: newOwner || 'ร่วมกัน' })
-      if (data.status === 'ok') { showToast('✅ เพิ่มเรียบร้อยแล้ว'); setNewName(''); setNewLast4(''); load() }
-      else showToast('❌ ' + (data.message || 'เกิดข้อผิดพลาด'))
-    } catch { showToast('❌ เชื่อมต่อไม่ได้') }
-    setSaving(false)
+  const handleRemove = async (id) => {
+    if (!confirm(lang === 'th' ? 'ลบวิธีชำระนี้?' : 'Delete this payment method?')) return
+    await sendToGAS({ action: 'removePayment', id })
+    await load()
   }
 
-  const handleRemove = async (id, name) => {
-    if (!confirm(`ลบ "${name}" ออกจากระบบ?`)) return
-    try {
-      const data = await sendToGAS({ action: 'removePayment', id })
-      if (data.status === 'ok') { showToast('✅ ลบเรียบร้อยแล้ว'); load() }
-      else showToast('❌ ' + (data.message || 'เกิดข้อผิดพลาด'))
-    } catch { showToast('❌ เชื่อมต่อไม่ได้') }
-  }
-
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>กำลังโหลด...</div>
-
-  const OwnerSelect = ({ value, onChange }) => (
-    <select value={value} onChange={e => onChange(e.target.value)} style={S.select}>
-      <option value="ร่วมกัน">ร่วมกัน</option>
-      {members.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
-    </select>
-  )
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>{t('loading', lang)}</div>
 
   return (
     <div style={S.wrap}>
       {toast && <div style={S.toast}>{toast}</div>}
-      <div style={S.header}><div style={S.htitle}>💳 จัดการวิธีชำระเงิน</div></div>
-      <div style={S.body}>
-        <div style={S.section}>รายการปัจจุบัน ({payments.length})</div>
-        {payments.length === 0
-          ? <div style={{ color: '#aaa', fontSize: 14 }}>ยังไม่มีวิธีชำระเงิน</div>
-          : payments.map(p => (
-            <div key={p.id} style={S.card}>
-              <div style={S.cardRow}>
-                <div style={S.cardInfo}>
-                  <div style={S.cardName}>{p.name}{p.last4 ? ` ···${p.last4}` : ''}</div>
-                  <div style={S.cardSub}>{TYPE_OPTIONS.find(t => t.value === p.type)?.label || p.type} · {p.owner}</div>
-                </div>
-                <button onClick={() => startEdit(p)} style={S.btnEdit}>แก้ไข</button>
-                <button onClick={() => handleRemove(p.id, p.name)} style={S.btnDel}>ลบ</button>
-              </div>
-              {editId === p.id && (
-                <div style={S.editBox}>
-                  <div style={S.group}>
-                    <label style={S.label}>ประเภท</label>
-                    <select value={editType} onChange={e => setEditType(e.target.value)} style={S.select}>
-                      {TYPE_OPTIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                    </select>
-                  </div>
-                  <div style={S.grid2}>
-                    <div style={S.group}>
-                      <label style={S.label}>ชื่อบัตร</label>
-                      <input value={editName} onChange={e => setEditName(e.target.value)} style={S.input} />
-                    </div>
-                    <div style={S.group}>
-                      <label style={S.label}>4 ตัวท้าย</label>
-                      <input value={editLast4} onChange={e => setEditLast4(e.target.value.replace(/\D/g,'').slice(0,4))} maxLength={4} style={S.input} />
-                    </div>
-                  </div>
-                  <div style={S.group}>
-                    <label style={S.label}>เจ้าของ</label>
-                    <OwnerSelect value={editOwner} onChange={setEditOwner} />
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={cancelEdit} style={S.btnCan}>ยกเลิก</button>
-                    <button onClick={() => handleEdit(p.id)} style={S.btnSave} disabled={saving}>บันทึก</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))
-        }
 
-        <div style={S.divider} />
-        <div style={S.section}>เพิ่มวิธีชำระใหม่</div>
-        <div style={S.group}>
-          <label style={S.label}>ประเภท</label>
-          <select value={newType} onChange={e => setNewType(e.target.value)} style={S.select}>
-            {TYPE_OPTIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
+      <div style={S.header}>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>{t('managePayments', lang)}</div>
+          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 2 }}>{pays.length} {lang === 'th' ? 'รายการ' : 'methods'}</div>
         </div>
-        <div style={S.grid2}>
-          <div style={S.group}>
-            <label style={S.label}>ชื่อบัตร / วิธีชำระ</label>
-            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="เช่น KBank Visa" style={S.input} />
-          </div>
-          <div style={S.group}>
-            <label style={S.label}>เลข 4 ตัวท้าย</label>
-            <input value={newLast4} onChange={e => setNewLast4(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="1234" maxLength={4} style={S.input} />
-          </div>
-        </div>
-        <div style={S.group}>
-          <label style={S.label}>เจ้าของ</label>
-          <OwnerSelect value={newOwner} onChange={setNewOwner} />
-        </div>
-        <button onClick={handleAdd} style={S.btnAdd} disabled={saving}>
-          {saving ? 'กำลังเพิ่ม...' : '+ เพิ่มวิธีชำระ'}
-        </button>
+        <LangToggle />
       </div>
-    <BottomNav />
+
+      <div style={S.body}>
+        <div style={{ fontSize: 12, color: '#aaa', marginBottom: 8, textAlign: 'center' }}>
+          {t('dragHint', lang)} {lang === 'th' ? '· หรือใส่ตัวเลขลำดับ' : '· or type order number'}
+        </div>
+
+        {pays.map((p, i) => (
+          <div key={p.id}
+            draggable
+            onDragStart={() => onDragStart(i)}
+            onDragEnter={() => onDragEnter(i)}
+            onDragEnd={onDragEnd}
+            onDragOver={e => e.preventDefault()}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px', marginBottom: 4, borderRadius: 10,
+              background: dragging === i ? '#fff8f0' : '#fff',
+              border: '1px solid #f0f0ec', cursor: 'grab'
+            }}>
+
+            <span style={{ fontSize: 16, color: '#ccc', userSelect: 'none', flexShrink: 0 }}>≡</span>
+
+            {/* Manual order input */}
+            <input
+              type="number" min="1" max={pays.length}
+              value={i + 1}
+              onChange={e => handleOrderInput(p.id, e.target.value)}
+              style={{ width: 40, padding: '4px 6px', borderRadius: 6, border: '1px solid #ddd', fontSize: 13, textAlign: 'center' }}
+            />
+
+            <span style={{ fontSize: 20, flexShrink: 0 }}>{TYPE_ICONS[p.type] || '💰'}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {p.name}{p.last4 ? ` ···${p.last4}` : ''}
+              </div>
+              <div style={{ fontSize: 11, color: '#888' }}>
+                {t(p.type, lang) || p.type} · {p.owner || t('shared', lang)}
+              </div>
+            </div>
+
+            <button onClick={() => moveItem(i, -1)} disabled={i === 0}
+              style={{ ...S.iconBtn, background: '#f5f5f0', opacity: i === 0 ? 0.3 : 1 }}>↑</button>
+            <button onClick={() => moveItem(i, 1)} disabled={i === pays.length - 1}
+              style={{ ...S.iconBtn, background: '#f5f5f0', opacity: i === pays.length - 1 ? 0.3 : 1 }}>↓</button>
+            <button onClick={() => { setEditing(p.id); setForm({ name: p.name, type: p.type || 'credit', last4: p.last4 || '', owner: p.owner || '' }) }}
+              style={{ ...S.iconBtn, background: '#fff8e6', color: '#BA7517' }}>✏️</button>
+            <button onClick={() => handleRemove(p.id)}
+              style={{ ...S.iconBtn, background: '#fee', color: '#D85A30' }}>🗑</button>
+          </div>
+        ))}
+
+        {orderChanged && (
+          <button onClick={saveOrder} disabled={savingOrder} style={{
+            width: '100%', marginTop: 10, padding: '12px', borderRadius: 10,
+            border: 'none', background: '#1D9E75', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer'
+          }}>
+            {savingOrder ? t('saving', lang) : t('saveOrder', lang)}
+          </button>
+        )}
+
+        <div style={{ marginTop: 20, padding: 16, background: '#f8f8f5', borderRadius: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: '#555' }}>
+            {editing ? t('edit', lang) : t('addPayment', lang)}
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={S.label}>{t('type', lang)}</label>
+            <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} style={S.select}>
+              {TYPE_OPTIONS.map(tp => <option key={tp} value={tp}>{TYPE_ICONS[tp]} {t(tp, lang) || tp}</option>)}
+            </select>
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={S.label}>{t('paymentName', lang)}</label>
+            <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              placeholder={lang === 'th' ? 'เช่น KBank, SCB, เงินสด' : 'e.g. KBank, SCB, Cash'} style={S.input} />
+          </div>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+            <div style={{ flex: 1 }}>
+              <label style={S.label}>{t('last4', lang)}</label>
+              <input value={form.last4} onChange={e => setForm(f => ({ ...f, last4: e.target.value.slice(0,4) }))}
+                placeholder="1234" maxLength={4} style={S.input} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={S.label}>{t('owner', lang)}</label>
+              <select value={form.owner} onChange={e => setForm(f => ({ ...f, owner: e.target.value }))} style={S.select}>
+                <option value="">{t('shared', lang)}</option>
+                {members.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {editing && (
+              <button onClick={() => { setEditing(null); setForm({ name: '', type: 'credit', last4: '', owner: '' }) }}
+                style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1px solid #ddd', background: '#fff', fontSize: 14, cursor: 'pointer' }}>
+                {t('cancel', lang)}
+              </button>
+            )}
+            <button onClick={handleSave} disabled={saving || !form.name.trim()}
+              style={{ flex: 2, padding: '12px', borderRadius: 10, border: 'none',
+                background: form.name.trim() ? '#BA7517' : '#ccc', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+              {saving ? t('saving', lang) : (editing ? t('save', lang) : t('addPayment', lang))}
+            </button>
+          </div>
+        </div>
+      </div>
+      <BottomNav />
     </div>
   )
 }
