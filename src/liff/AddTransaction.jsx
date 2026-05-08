@@ -53,9 +53,10 @@ export default function AddTransaction() {
   useEffect(() => {
     Promise.all([fetchSheet('categories'), fetchSheet('members'), fetchSheet('payment_methods')])
       .then(([cats, mems, pays]) => {
-        setCategories(cats.filter(c => c.active === 'TRUE'))
-        setMembers(mems.filter(m => m.active === 'TRUE'))
-        setPayments(pays.filter(p => p.active === 'TRUE'))
+        const sortByOrder = (arr) => [...arr].sort((a, b) => (parseInt(a.order) || 999) - (parseInt(b.order) || 999))
+        setCategories(sortByOrder(cats.filter(c => c.active === 'TRUE')))
+        setMembers(sortByOrder(mems.filter(m => m.active === 'TRUE')))
+        setPayments(sortByOrder(pays.filter(p => p.active === 'TRUE')))
         setLoading(false)
       }).catch(() => setLoading(false))
   }, [])
