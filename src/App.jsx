@@ -485,6 +485,7 @@ export default function App() {
         <TransactionList
           expenses={expenses}
           payments={payments}
+          categories={categories}
           catIconMap={catIconMap}
           memberNames={memberNames}
           monthKey={monthKey}
@@ -521,23 +522,40 @@ export default function App() {
 }
 
 // ============================================================
-//  TRANSACTION LIST — Filter + Edit
+//  TRANSACTION LIST — Dropdown Filter + Full Edit Modal
 // ============================================================
-function TransactionList({ expenses, payments, catIconMap, memberNames, monthKey, lang, onReload, GAS_URL }) {
-  const [filterPm, setFilterPm]     = useState('all')
-  const [editingTx, setEditingTx]   = useState(null) // {rowIndex, ...fields}
-  const [editForm, setEditForm]     = useState({})
-  const [saving, setSaving]         = useState(false)
-
-  const filtered = filterPm === 'all'
-    ? expenses
-    : expenses.filter(tx => (tx.payment_id || '').includes(filterPm))
+function TransactionList({ expenses, payments, categories, catIconMap, memberNames, monthKey, lang, onReload, GAS_URL }) {
+  const [filterPm, setFilterPm]   = useState('all')
+  const [editingTx, setEditingTx] = useState(null)
+  const [editForm, setEditForm]   = useState({})
+  const [saving, setSaving]       = useState(false)
 
   const pmOptions = [...new Set(expenses.map(tx => tx.payment_id || '').filter(Boolean))]
 
+  const sortByDate = (arr) => [...arr].sort((a, b) => {
+    const da = new Date(a.date || 0), db = new Date(b.date || 0)
+    return db - da // เรียงจากใหม่ไปเก่า
+  })
+
+  const filtered = sortByDate(
+    filterPm === 'all'
+      ? expenses
+      : expenses.filter(tx => (tx.payment_id || '') === filterPm)
+  )
+
+  const pmNameShort = (pmStr) => (pmStr || '').replace(/\s*\(.+\)$/, '').trim()
+
   const openEdit = (tx) => {
     setEditingTx(tx)
-    setEditForm({ name: tx.name, amount: tx.amount, category: tx.category, date: tx.date, note: tx.note || '', payment_id: tx.payment_id || '' })
+    setEditForm({
+      date:       tx.date       || '',
+      name:       tx.name       || '',
+      amount:     tx.amount     || '',
+      category:   tx.category   || '',
+      payer:      tx.payer      || '',
+      payment_id: tx.payment_id || '',
+      note:       tx.note       || '',
+    })
   }
 
   const handleSaveEdit = async () => {
@@ -548,71 +566,98 @@ function TransactionList({ expenses, payments, catIconMap, memberNames, monthKey
         action:     'editTransaction',
         month:      monthKey,
         created_at: editingTx.created_at || '',
+        date:       editForm.date,
         name:       editForm.name,
         amount:     editForm.amount,
-        date:       editForm.date,
-        note:       editForm.note || ''
+        category:   editForm.category,
+        payer:      editForm.payer,
+        payment_id: editForm.payment_id,
+        note:       editForm.note || '',
       })
       const res  = await fetch(`${GAS_URL}?${params.toString()}`)
       const data = await res.json()
       if (data.status === 'ok') { setEditingTx(null); onReload() }
-      else alert('Error: ' + (data.message || 'Unknown error'))
+      else alert('Error: ' + (data.message || 'Unknown'))
     } catch (e) { alert('Connection error: ' + e.message) }
     setSaving(false)
   }
 
-  const pmNameShort = (pmStr) => (pmStr || '').replace(/\s*\(.+\)$/, '').trim()
+  const inp = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #e0e0d8', fontSize: 14, boxSizing: 'border-box', background: '#fff' }
+  const lbl = { fontSize: 12, color: '#888', display: 'block', marginBottom: 4 }
 
   return (
     <Section title={`${lang === 'th' ? 'รายการทั้งหมด' : 'All Transactions'} (${expenses.length})`}>
-      {/* FILTER BY PAYMENT */}
-      {pmOptions.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          <button onClick={() => setFilterPm('all')} style={{
-            padding: '4px 10px', borderRadius: 20, fontSize: 12, cursor: 'pointer', border: '1px solid',
-            borderColor: filterPm === 'all' ? '#D85A30' : '#e0e0d8',
-            background:  filterPm === 'all' ? '#fff4f0' : '#fff',
-            color:       filterPm === 'all' ? '#D85A30' : '#666', fontWeight: filterPm === 'all' ? 700 : 400
-          }}>
-            {lang === 'th' ? 'ทั้งหมด' : 'All'}
-          </button>
+
+      {/* FILTER DROPDOWN */}
+      <div style={{ marginBottom: 12 }}>
+        <select value={filterPm} onChange={e => setFilterPm(e.target.value)}
+          style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e0e0d8', fontSize: 14, background: '#fff', cursor: 'pointer' }}>
+          <option value="all">{lang === 'th' ? '💳 ทุกวิธีชำระ' : '💳 All Payments'}</option>
           {pmOptions.map(pm => (
-            <button key={pm} onClick={() => setFilterPm(pm === filterPm ? 'all' : pm)} style={{
-              padding: '4px 10px', borderRadius: 20, fontSize: 12, cursor: 'pointer', border: '1px solid',
-              borderColor: filterPm === pm ? '#D85A30' : '#e0e0d8',
-              background:  filterPm === pm ? '#fff4f0' : '#fff',
-              color:       filterPm === pm ? '#D85A30' : '#666', fontWeight: filterPm === pm ? 700 : 400
-            }}>
-              {pmNameShort(pm)}
-            </button>
+            <option key={pm} value={pm}>{pmNameShort(pm)}</option>
           ))}
-        </div>
-      )}
+        </select>
+      </div>
 
       {/* EDIT MODAL */}
       {editingTx && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ background: '#fff', width: '100%', maxWidth: 480, margin: '0 auto', borderRadius: '16px 16px 0 0', padding: '20px 20px 32px' }}>
-            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', width: '100%', maxWidth: 480, borderRadius: '16px 16px 0 0', padding: '20px 20px 36px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 14, color: '#1a1a1a' }}>
               {lang === 'th' ? '✏️ แก้ไขรายการ' : '✏️ Edit Transaction'}
             </div>
-            {[
-              { key: 'date',     label: lang === 'th' ? 'วันที่' : 'Date',     type: 'date' },
-              { key: 'name',     label: lang === 'th' ? 'รายการ' : 'Name',     type: 'text' },
-              { key: 'amount',   label: lang === 'th' ? 'ยอด (บาท)' : 'Amount', type: 'number' },
-              { key: 'note',     label: lang === 'th' ? 'หมายเหตุ' : 'Note',    type: 'text' },
-            ].map(f => (
-              <div key={f.key} style={{ marginBottom: 10 }}>
-                <label style={{ fontSize: 12, color: '#888', display: 'block', marginBottom: 4 }}>{f.label}</label>
-                <input type={f.type} value={editForm[f.key] || ''} onChange={e => setEditForm(p => ({ ...p, [f.key]: e.target.value }))}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #e0e0d8', fontSize: 15, boxSizing: 'border-box' }} />
-              </div>
-            ))}
-            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-              <button onClick={() => setEditingTx(null)} style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid #ddd', background: '#fff', fontSize: 14, cursor: 'pointer' }}>
+
+            <div style={{ marginBottom: 10 }}>
+              <label style={lbl}>{lang === 'th' ? 'วันที่' : 'Date'}</label>
+              <input type="date" value={editForm.date} onChange={e => setEditForm(p => ({ ...p, date: e.target.value }))} style={inp} />
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={lbl}>{lang === 'th' ? 'ชื่อรายการ' : 'Item Name'}</label>
+              <input type="text" value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
+                placeholder={lang === 'th' ? 'เช่น ค่าข้าว' : 'e.g. Lunch'} style={inp} />
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={lbl}>{lang === 'th' ? 'จำนวนเงิน (บาท)' : 'Amount (THB)'}</label>
+              <input type="number" value={editForm.amount} onChange={e => setEditForm(p => ({ ...p, amount: e.target.value }))}
+                inputMode="decimal" style={{ ...inp, fontSize: 18, fontWeight: 600 }} />
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={lbl}>{lang === 'th' ? 'หมวดหมู่' : 'Category'}</label>
+              <select value={editForm.category} onChange={e => setEditForm(p => ({ ...p, category: e.target.value }))} style={inp}>
+                <option value="">{lang === 'th' ? '-- เลือกหมวด --' : '-- Select --'}</option>
+                {categories.map(c => <option key={c.id} value={c.name}>{c.icon} {c.name}</option>)}
+              </select>
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={lbl}>{lang === 'th' ? 'ผู้จ่าย' : 'Paid by'}</label>
+              <select value={editForm.payer} onChange={e => setEditForm(p => ({ ...p, payer: e.target.value }))} style={inp}>
+                <option value="">{lang === 'th' ? '-- เลือกผู้จ่าย --' : '-- Select --'}</option>
+                {memberNames.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={lbl}>{lang === 'th' ? 'วิธีชำระเงิน' : 'Payment Method'}</label>
+              <select value={editForm.payment_id} onChange={e => setEditForm(p => ({ ...p, payment_id: e.target.value }))} style={inp}>
+                <option value="">{lang === 'th' ? '-- เลือกวิธีชำระ --' : '-- Select --'}</option>
+                {payments.map(pm => {
+                  const label = `${pm.name}${pm.last4 ? ` ···${pm.last4}` : ''} (${pm.owner || (lang === 'th' ? 'ร่วมกัน' : 'Shared')})`
+                  return <option key={pm.id} value={label}>{label}</option>
+                })}
+              </select>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={lbl}>{lang === 'th' ? 'หมายเหตุ (ไม่บังคับ)' : 'Note (optional)'}</label>
+              <input type="text" value={editForm.note} onChange={e => setEditForm(p => ({ ...p, note: e.target.value }))}
+                placeholder={lang === 'th' ? 'หมายเหตุเพิ่มเติม' : 'Additional notes'} style={inp} />
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setEditingTx(null)}
+                style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid #ddd', background: '#fff', fontSize: 14, cursor: 'pointer' }}>
                 {lang === 'th' ? 'ยกเลิก' : 'Cancel'}
               </button>
-              <button onClick={handleSaveEdit} disabled={saving} style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: '#1D9E75', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+              <button onClick={handleSaveEdit} disabled={saving}
+                style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: '#1D9E75', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
                 {saving ? (lang === 'th' ? 'กำลังบันทึก...' : 'Saving...') : (lang === 'th' ? '✅ บันทึก' : '✅ Save')}
               </button>
             </div>
@@ -623,7 +668,7 @@ function TransactionList({ expenses, payments, catIconMap, memberNames, monthKey
       {/* LIST */}
       {filtered.length === 0
         ? <div style={{ fontSize: 14, color: '#888' }}>{lang === 'th' ? 'ยังไม่มีรายการ' : 'No transactions'}</div>
-        : [...filtered].reverse().map((tx, i) => {
+        : filtered.map((tx, i) => {
             const pmLabel    = tx.payment_id || ''
             const pmOwner    = resolveOwnerFromLabel(pmLabel, tx.payer)
             const ownerIdx   = memberNames.indexOf(pmOwner)
