@@ -558,6 +558,23 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
     })
   }
 
+  const handleDelete = async (tx) => {
+    if (!confirm(lang === 'th' ? 'ลบรายการนี้?' : 'Delete this transaction?')) return
+    setSaving(true)
+    try {
+      const params = new URLSearchParams({
+        action:     'deleteTransaction',
+        month:      monthKey,
+        created_at: tx.created_at || '',
+      })
+      const res  = await fetch(`${GAS_URL}?${params.toString()}`)
+      const data = await res.json()
+      if (data.status === 'ok') { setEditingTx(null); onReload() }
+      else alert('Error: ' + (data.message || 'Unknown'))
+    } catch (e) { alert('Connection error') }
+    setSaving(false)
+  }
+
   const handleSaveEdit = async () => {
     if (!editForm.name || !editForm.amount) return
     setSaving(true)
@@ -651,14 +668,18 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
                 placeholder={lang === 'th' ? 'หมายเหตุเพิ่มเติม' : 'Additional notes'} style={inp} />
             </div>
 
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setEditingTx(null)}
                 style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid #ddd', background: '#fff', fontSize: 14, cursor: 'pointer' }}>
                 {lang === 'th' ? 'ยกเลิก' : 'Cancel'}
               </button>
+              <button onClick={() => handleDelete(editingTx)} disabled={saving}
+                style={{ flex: 1, padding: 12, borderRadius: 10, border: 'none', background: '#D85A30', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                🗑
+              </button>
               <button onClick={handleSaveEdit} disabled={saving}
                 style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: '#1D9E75', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-                {saving ? (lang === 'th' ? 'กำลังบันทึก...' : 'Saving...') : (lang === 'th' ? '✅ บันทึก' : '✅ Save')}
+                {saving ? '...' : (lang === 'th' ? '✅ บันทึก' : '✅ Save')}
               </button>
             </div>
           </div>
