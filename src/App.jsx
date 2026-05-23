@@ -666,8 +666,12 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
               <select value={editForm.payment_id} onChange={e => setEditForm(p => ({ ...p, payment_id: e.target.value }))} style={inp}>
                 <option value="">{lang === 'th' ? '-- เลือกวิธีชำระ --' : '-- Select --'}</option>
                 {payments.map(pm => {
-                  const label = `${pm.name}${pm.last4 ? ` ···${pm.last4}` : ''} (${pm.owner || (lang === 'th' ? 'ร่วมกัน' : 'Shared')})`
-                  return <option key={pm.id} value={label}>{label}</option>
+                  const label = `${pm.name}${pm.last4 ? ` ···${pm.last4}` : ''} (${pm.owner || 'ร่วมกัน'})`
+                  const isSelected = editForm.payment_id && (
+                    editForm.payment_id === label ||
+                    editForm.payment_id.replace(/\s+/g, ' ').trim() === label.replace(/\s+/g, ' ').trim()
+                  )
+                  return <option key={pm.id} value={label} selected={isSelected}>{label}</option>
                 })}
               </select>
             </div>
