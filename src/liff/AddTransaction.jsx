@@ -168,7 +168,7 @@ export default function AddTransaction() {
           ])
           setCategories(sortByOrder(cats.filter(c => c.active === 'TRUE')))
           setMembers(sortByOrder(mems.filter(m => m.active === 'TRUE')))
-          setPayments(sortByOrder(pays.filter(p => p.active === 'TRUE')))
+          setPayments(sortByOrder(pays.filter(p => p.active === 'TRUE' || p.active === true)))
         } catch {}
       }
       setLoading(false)
