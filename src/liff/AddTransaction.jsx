@@ -26,56 +26,97 @@ const S = {
 }
 
 
-// DatePicker — ใช้ select dropdown แทน input[type=date] เพราะ LIFF บน Line บล็อก
+// DatePicker — Custom Calendar UI ไม่พึ่ง native input/select รองรับ LIFF ทุก platform
 function DatePicker({ value, onChange }) {
   const now = new Date()
   const toISO = (y, m, d) => `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`
-
-  // parse value
   const [selY, selM, selD] = value ? value.split('-').map(Number) : [now.getFullYear(), now.getMonth()+1, now.getDate()]
-
-  const years  = [now.getFullYear() - 1, now.getFullYear()]
-  const months = Array.from({length: 12}, (_, i) => i + 1)
-  const daysInMonth = new Date(selY, selM, 0).getDate()
-  const days   = Array.from({length: daysInMonth}, (_, i) => i + 1)
+  const [showCal, setShowCal] = useState(false)
+  const [viewY, setViewY] = useState(selY)
+  const [viewM, setViewM] = useState(selM)
 
   const thMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
+  const thDays   = ['อา','จ','อ','พ','พฤ','ศ','ส']
 
-  const handleChange = (y, m, d) => {
-    const maxD = new Date(y, m, 0).getDate()
-    onChange(toISO(y, m, Math.min(d, maxD)))
-  }
-
-  // quick buttons
   const today     = toISO(now.getFullYear(), now.getMonth()+1, now.getDate())
   const yesterday = (() => { const d = new Date(now); d.setDate(d.getDate()-1); return toISO(d.getFullYear(), d.getMonth()+1, d.getDate()) })()
   const twoDays   = (() => { const d = new Date(now); d.setDate(d.getDate()-2); return toISO(d.getFullYear(), d.getMonth()+1, d.getDate()) })()
 
-  const selStyle  = { flex:1, padding:'7px 4px', borderRadius:8, border:'1.5px solid #1D9E75', background:'#e8f7f2', color:'#0F6E56', fontSize:12, fontWeight:700, cursor:'pointer' }
-  const normStyle = { flex:1, padding:'7px 4px', borderRadius:8, border:'1.5px solid #e0e0d8', background:'#fff', color:'#555', fontSize:12, cursor:'pointer' }
-  const selEl = { padding:'9px 4px', borderRadius:8, border:'1.5px solid #e0e0d8', fontSize:14, background:'#fff', flex:1 }
+  const daysInMonth = new Date(viewY, viewM, 0).getDate()
+  const firstDay    = new Date(viewY, viewM - 1, 1).getDay()
+
+  const prevMonth = () => { if (viewM === 1) { setViewM(12); setViewY(y => y-1) } else setViewM(m => m-1) }
+  const nextMonth = () => { if (viewM === 12) { setViewM(1); setViewY(y => y+1) } else setViewM(m => m+1) }
+
+  const selectDay = (d) => {
+    onChange(toISO(viewY, viewM, d))
+    setShowCal(false)
+  }
+
+  const displayDate = value
+    ? `${selD} ${thMonths[selM-1]} ${selY}`
+    : 'เลือกวันที่'
+
+  const qBtn = (label, val) => (
+    <button key={val} onClick={() => { onChange(val); setShowCal(false) }}
+      style={{ flex:1, padding:'8px 4px', borderRadius:8, border:`1.5px solid ${value===val?'#1D9E75':'#e0e0d8'}`, background:value===val?'#e8f7f2':'#fff', color:value===val?'#0F6E56':'#555', fontSize:12, fontWeight:value===val?700:400, cursor:'pointer' }}>
+      {label}
+    </button>
+  )
 
   return (
-    <div>
-      <div style={{ display:'flex', gap:8, marginBottom:8 }}>
-        <select value={selD} onChange={e => handleChange(selY, selM, Number(e.target.value))} style={selEl}>
-          {days.map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-        <select value={selM} onChange={e => handleChange(selY, Number(e.target.value), selD)} style={selEl}>
-          {months.map(m => <option key={m} value={m}>{thMonths[m-1]}</option>)}
-        </select>
-        <select value={selY} onChange={e => handleChange(Number(e.target.value), selM, selD)} style={selEl}>
-          {years.map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
+    <div style={{ position:'relative' }}>
+      {/* Display + toggle */}
+      <button onClick={() => setShowCal(s => !s)}
+        style={{ width:'100%', padding:'10px 14px', borderRadius:8, border:`1.5px solid ${showCal?'#1D9E75':'#e0e0d8'}`, background:'#fff', fontSize:15, textAlign:'left', cursor:'pointer', color:'#222', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <span>📅 {displayDate}</span>
+        <span style={{ fontSize:12, color:'#888' }}>{showCal ? '▲' : '▼'}</span>
+      </button>
+
+      {/* Quick buttons */}
+      <div style={{ display:'flex', gap:8, marginTop:8 }}>
+        {qBtn('วันนี้', today)}
+        {qBtn('เมื่อวาน', yesterday)}
+        {qBtn('2 วันก่อน', twoDays)}
       </div>
-      <div style={{ display:'flex', gap:8 }}>
-        {[{label:'วันนี้', val:today},{label:'เมื่อวาน', val:yesterday},{label:'2 วันก่อน', val:twoDays}].map(q => (
-          <button key={q.val} onClick={() => onChange(q.val)}
-            style={value === q.val ? selStyle : normStyle}>
-            {q.label}
+
+      {/* Calendar popup */}
+      {showCal && (
+        <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:999, background:'#fff', border:'1.5px solid #e0e0d8', borderRadius:12, padding:12, marginTop:4, boxShadow:'0 4px 20px rgba(0,0,0,0.12)' }}>
+          {/* Month nav */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+            <button onClick={prevMonth} style={{ padding:'4px 12px', border:'1px solid #e0e0d8', borderRadius:8, background:'#fff', fontSize:16, cursor:'pointer' }}>‹</button>
+            <span style={{ fontWeight:700, fontSize:15 }}>{thMonths[viewM-1]} {viewY}</span>
+            <button onClick={nextMonth} style={{ padding:'4px 12px', border:'1px solid #e0e0d8', borderRadius:8, background:'#fff', fontSize:16, cursor:'pointer' }}>›</button>
+          </div>
+          {/* Day headers */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2, marginBottom:4 }}>
+            {thDays.map(d => (
+              <div key={d} style={{ textAlign:'center', fontSize:11, color:'#888', padding:'2px 0' }}>{d}</div>
+            ))}
+          </div>
+          {/* Day grid */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2 }}>
+            {Array.from({length: firstDay}).map((_, i) => <div key={'e'+i} />)}
+            {Array.from({length: daysInMonth}, (_, i) => i+1).map(d => {
+              const iso = toISO(viewY, viewM, d)
+              const isSelected = iso === value
+              const isToday    = iso === today
+              return (
+                <button key={d} onClick={() => selectDay(d)}
+                  style={{ padding:'7px 2px', borderRadius:8, border:'none', background: isSelected ? '#1D9E75' : isToday ? '#e8f7f2' : '#fff', color: isSelected ? '#fff' : isToday ? '#0F6E56' : '#222', fontWeight: isSelected||isToday ? 700 : 400, fontSize:13, cursor:'pointer', textAlign:'center' }}>
+                  {d}
+                </button>
+              )
+            })}
+          </div>
+          {/* Close */}
+          <button onClick={() => setShowCal(false)}
+            style={{ width:'100%', marginTop:10, padding:'8px', border:'1px solid #e0e0d8', borderRadius:8, background:'#f8f8f8', color:'#555', fontSize:13, cursor:'pointer' }}>
+            ปิด
           </button>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
