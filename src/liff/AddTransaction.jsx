@@ -292,12 +292,11 @@ export default function AddTransaction() {
             <label style={S.label}>🏷 หมวดหมู่ {errors.category && <span style={{ color: '#D85A30' }}>*</span>}</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {categories.map(c => (
-                <div key={c.id}
-                  onClick={() => setCategory(c.name)}
-                  onTouchEnd={e => { e.preventDefault(); setCategory(c.name) }}
-                  style={category === c.name ? {...S.chipSel, WebkitTapHighlightColor:'transparent'} : {...S.chip, WebkitTapHighlightColor:'transparent'}}>
+                <label key={c.id} style={category === c.name ? {...S.chipSel, WebkitTapHighlightColor:'transparent'} : {...S.chip, WebkitTapHighlightColor:'transparent'}}>
+                  <input type="radio" name="category" value={c.name} checked={category===c.name} onChange={() => setCategory(c.name)}
+                    style={{ position:'absolute', opacity:0, width:0, height:0 }} />
                   {c.icon} {c.name}
-                </div>
+                </label>
               ))}
             </div>
             {errors.category && <div style={S.err}>{errors.category}</div>}
@@ -306,12 +305,11 @@ export default function AddTransaction() {
             <label style={S.label}>👤 ผู้จ่าย {errors.payer && <span style={{ color: '#D85A30' }}>*</span>}</label>
             <div style={S.grid2}>
               {members.map(m => (
-                <div key={m.id}
-                  onClick={() => setPayer(m.name)}
-                  onTouchEnd={e => { e.preventDefault(); setPayer(m.name) }}
-                  style={payer === m.name ? { ...S.chipSel, borderRadius:8, WebkitTapHighlightColor:'transparent' } : { ...S.chip, borderRadius:8, WebkitTapHighlightColor:'transparent' }}>
+                <label key={m.id} style={payer === m.name ? { ...S.chipSel, borderRadius:8, WebkitTapHighlightColor:'transparent' } : { ...S.chip, borderRadius:8, WebkitTapHighlightColor:'transparent' }}>
+                  <input type="radio" name="payer" value={m.name} checked={payer===m.name} onChange={() => setPayer(m.name)}
+                    style={{ position:'absolute', opacity:0, width:0, height:0 }} />
                   {m.name}
-                </div>
+                </label>
               ))}
             </div>
             {errors.payer && <div style={S.err}>{errors.payer}</div>}
@@ -323,12 +321,11 @@ export default function AddTransaction() {
                 const label = `${p.name}${p.last4 ? ` ···${p.last4}` : ''} (${p.owner})`
                 const isSel = paymentId === p.id
                 return (
-                  <div key={p.id}
-                    onClick={() => setPaymentId(p.id)}
-                    onTouchEnd={e => { e.preventDefault(); setPaymentId(p.id) }}
-                    style={{ padding:'11px 14px', borderRadius:8, border:`1.5px solid ${isSel?'#1D9E75':'#e0e0d8'}`, background:isSel?'#e8f7f2':'#fff', color:isSel?'#0F6E56':'#333', fontWeight:isSel?700:400, fontSize:14, WebkitTapHighlightColor:'transparent', userSelect:'none', cursor:'pointer' }}>
+                  <label key={p.id} style={{ display:'block', padding:'11px 14px', borderRadius:8, border:`1.5px solid ${isSel?'#1D9E75':'#e0e0d8'}`, background:isSel?'#e8f7f2':'#fff', color:isSel?'#0F6E56':'#333', fontWeight:isSel?700:400, fontSize:14, cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+                    <input type="radio" name="paymentId" value={p.id} checked={isSel} onChange={() => setPaymentId(p.id)}
+                      style={{ position:'absolute', opacity:0, width:0, height:0 }} />
                     {isSel ? '✓ ' : ''}{label}
-                  </div>
+                  </label>
                 )
               })}
             </div>
