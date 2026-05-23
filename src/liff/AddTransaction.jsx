@@ -148,14 +148,32 @@ export default function AddTransaction() {
   const [errors,     setErrors]     = useState({})
 
   useEffect(() => {
-    Promise.all([fetchSheet('categories'), fetchSheet('members'), fetchSheet('payment_methods')])
-      .then(([cats, mems, pays]) => {
-        const sortByOrder = (arr) => [...arr].sort((a, b) => (parseInt(a.order) || 999) - (parseInt(b.order) || 999))
-        setCategories(sortByOrder(cats.filter(c => c.active === 'TRUE')))
-        setMembers(sortByOrder(mems.filter(m => m.active === 'TRUE')))
-        setPayments(sortByOrder(pays.filter(p => p.active === 'TRUE')))
-        setLoading(false)
-      }).catch(() => setLoading(false))
+    // ดึงข้อมูลผ่าน GAS เพื่อรองรับ LIFF WebView ที่บล็อก Google Sheets API โดยตรง
+    const sortByOrder = (arr) => [...arr].sort((a, b) => (parseInt(a.order) || 999) - (parseInt(b.order) || 999))
+    const loadFromGAS = async () => {
+      try {
+        const [catsRes, memsRes, paysRes] = await Promise.all([
+          fetch(`${GAS_URL}?action=getCategories`).then(r => r.json()),
+          fetch(`${GAS_URL}?action=getMembers`).then(r => r.json()),
+          fetch(`${GAS_URL}?action=getPayments`).then(r => r.json()),
+        ])
+        if (catsRes.status === 'ok') setCategories(sortByOrder(catsRes.data))
+        if (memsRes.status === 'ok') setMembers(sortByOrder(memsRes.data))
+        if (paysRes.status === 'ok') setPayments(sortByOrder(paysRes.data))
+      } catch {
+        // fallback ไป fetchSheet ถ้า GAS ไม่มี endpoint นี้
+        try {
+          const [cats, mems, pays] = await Promise.all([
+            fetchSheet('categories'), fetchSheet('members'), fetchSheet('payment_methods')
+          ])
+          setCategories(sortByOrder(cats.filter(c => c.active === 'TRUE')))
+          setMembers(sortByOrder(mems.filter(m => m.active === 'TRUE')))
+          setPayments(sortByOrder(pays.filter(p => p.active === 'TRUE')))
+        } catch {}
+      }
+      setLoading(false)
+    }
+    loadFromGAS()
   }, [])
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500) }
