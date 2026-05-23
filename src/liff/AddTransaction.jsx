@@ -26,33 +26,52 @@ const S = {
 }
 
 
-// DatePicker — รองรับ LIFF browser ที่ block input[type=date]
+// DatePicker — ใช้ select dropdown แทน input[type=date] เพราะ LIFF บน Line บล็อก
 function DatePicker({ value, onChange }) {
-  const today = todayISO()
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
-  const twoDaysAgo = new Date(Date.now() - 2*86400000).toISOString().slice(0, 10)
-  const fmt = (iso) => {
-    if (!iso) return ''
-    const [y, m, d] = iso.split('-')
-    return `${d}/${m}/${y}`
+  const now = new Date()
+  const toISO = (y, m, d) => `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+
+  // parse value
+  const [selY, selM, selD] = value ? value.split('-').map(Number) : [now.getFullYear(), now.getMonth()+1, now.getDate()]
+
+  const years  = [now.getFullYear() - 1, now.getFullYear()]
+  const months = Array.from({length: 12}, (_, i) => i + 1)
+  const daysInMonth = new Date(selY, selM, 0).getDate()
+  const days   = Array.from({length: daysInMonth}, (_, i) => i + 1)
+
+  const thMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
+
+  const handleChange = (y, m, d) => {
+    const maxD = new Date(y, m, 0).getDate()
+    onChange(toISO(y, m, Math.min(d, maxD)))
   }
-  const quickDates = [
-    { label: 'วันนี้', value: today },
-    { label: 'เมื่อวาน', value: yesterday },
-    { label: '2 วันก่อน', value: twoDaysAgo },
-  ]
+
+  // quick buttons
+  const today     = toISO(now.getFullYear(), now.getMonth()+1, now.getDate())
+  const yesterday = (() => { const d = new Date(now); d.setDate(d.getDate()-1); return toISO(d.getFullYear(), d.getMonth()+1, d.getDate()) })()
+  const twoDays   = (() => { const d = new Date(now); d.setDate(d.getDate()-2); return toISO(d.getFullYear(), d.getMonth()+1, d.getDate()) })()
+
+  const selStyle  = { flex:1, padding:'7px 4px', borderRadius:8, border:'1.5px solid #1D9E75', background:'#e8f7f2', color:'#0F6E56', fontSize:12, fontWeight:700, cursor:'pointer' }
+  const normStyle = { flex:1, padding:'7px 4px', borderRadius:8, border:'1.5px solid #e0e0d8', background:'#fff', color:'#555', fontSize:12, cursor:'pointer' }
+  const selEl = { padding:'9px 4px', borderRadius:8, border:'1.5px solid #e0e0d8', fontSize:14, background:'#fff', flex:1 }
+
   return (
     <div>
-      <input
-        type="date"
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e0e0d8', fontSize: 15, outline: 'none', boxSizing: 'border-box', colorScheme: 'light', WebkitAppearance: 'none', appearance: 'none', background: '#fff' }}
-      />
-      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-        {quickDates.map(q => (
-          <button key={q.value} onClick={() => onChange(q.value)}
-            style={{ flex: 1, padding: '6px 4px', borderRadius: 8, border: `1.5px solid ${value === q.value ? '#1D9E75' : '#e0e0d8'}`, background: value === q.value ? '#e8f7f2' : '#fff', color: value === q.value ? '#0F6E56' : '#555', fontSize: 12, fontWeight: value === q.value ? 700 : 400, cursor: 'pointer' }}>
+      <div style={{ display:'flex', gap:8, marginBottom:8 }}>
+        <select value={selD} onChange={e => handleChange(selY, selM, Number(e.target.value))} style={selEl}>
+          {days.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <select value={selM} onChange={e => handleChange(selY, Number(e.target.value), selD)} style={selEl}>
+          {months.map(m => <option key={m} value={m}>{thMonths[m-1]}</option>)}
+        </select>
+        <select value={selY} onChange={e => handleChange(Number(e.target.value), selM, selD)} style={selEl}>
+          {years.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+      </div>
+      <div style={{ display:'flex', gap:8 }}>
+        {[{label:'วันนี้', val:today},{label:'เมื่อวาน', val:yesterday},{label:'2 วันก่อน', val:twoDays}].map(q => (
+          <button key={q.val} onClick={() => onChange(q.val)}
+            style={value === q.val ? selStyle : normStyle}>
             {q.label}
           </button>
         ))}
