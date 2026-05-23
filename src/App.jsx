@@ -524,6 +524,15 @@ export default function App() {
 // ============================================================
 //  TRANSACTION LIST — Dropdown Filter + Full Edit Modal
 // ============================================================
+function normalizeCreatedAt(val) {
+  if (!val) return ''
+  // แปลง "2026-05-24 1:02:50" → "2026-05-24 01:02:50"
+  return String(val).trim().replace(
+    /(\d{4}-\d{2}-\d{2})\s+(\d):(\d{2}):(\d{2})/,
+    '$1 0$2:$3:$4'
+  )
+}
+
 function TransactionList({ expenses, payments, categories, catIconMap, memberNames, monthKey, lang, onReload, GAS_URL }) {
   const [filterPm, setFilterPm]   = useState('all')
   const [editingTx, setEditingTx] = useState(null)
@@ -565,7 +574,7 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
       const params = new URLSearchParams({
         action:     'deleteTransaction',
         month:      monthKey,
-        created_at: tx.created_at || '',
+        created_at: normalizeCreatedAt(tx.created_at),
       })
       const res  = await fetch(`${GAS_URL}?${params.toString()}`)
       const data = await res.json()
@@ -582,7 +591,7 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
       const params = new URLSearchParams({
         action:     'editTransaction',
         month:      monthKey,
-        created_at: editingTx.created_at || '',
+        created_at: normalizeCreatedAt(editingTx.created_at),
         date:       editForm.date,
         name:       editForm.name,
         amount:     editForm.amount,
