@@ -228,11 +228,11 @@ export default function AddTransaction() {
 
       {/* TABS */}
       <div style={{ display: 'flex', borderBottom: '1px solid #eee', background: '#fff' }}>
-        <button onClick={() => { setTab('expense'); setErrors({}) }}
+        <button onClick={() => { setTab('expense'); setErrors({}) }} onTouchEnd={e => { e.preventDefault(); setTab('expense'); setErrors({}) }}
           style={{ ...( tab === 'expense' ? S.tabAct : S.tab), color: tab === 'expense' ? '#1D9E75' : '#999', background: 'none' }}>
           ➕ รายจ่ายปกติ
         </button>
-        <button onClick={() => { setTab('direct'); setErrors({}) }}
+        <button onClick={() => { setTab('direct'); setErrors({}) }} onTouchEnd={e => { e.preventDefault(); setTab('direct'); setErrors({}) }}
           style={{ ...(tab === 'direct' ? S.tabAct : S.tab), color: tab === 'direct' ? '#BA7517' : '#999', background: 'none' }}>
           💸 หนี้โดยตรง
         </button>
@@ -267,10 +267,12 @@ export default function AddTransaction() {
             <label style={S.label}>🏷 หมวดหมู่ {errors.category && <span style={{ color: '#D85A30' }}>*</span>}</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {categories.map(c => (
-                <button key={c.id} onClick={() => setCategory(c.name)}
-                  style={category === c.name ? S.chipSel : S.chip}>
+                <div key={c.id}
+                  onClick={() => setCategory(c.name)}
+                  onTouchEnd={e => { e.preventDefault(); setCategory(c.name) }}
+                  style={category === c.name ? {...S.chipSel, WebkitTapHighlightColor:'transparent'} : {...S.chip, WebkitTapHighlightColor:'transparent'}}>
                   {c.icon} {c.name}
-                </button>
+                </div>
               ))}
             </div>
             {errors.category && <div style={S.err}>{errors.category}</div>}
@@ -279,25 +281,32 @@ export default function AddTransaction() {
             <label style={S.label}>👤 ผู้จ่าย {errors.payer && <span style={{ color: '#D85A30' }}>*</span>}</label>
             <div style={S.grid2}>
               {members.map(m => (
-                <button key={m.id} onClick={() => setPayer(m.name)}
-                  style={payer === m.name ? { ...S.chipSel, borderRadius: 8 } : { ...S.chip, borderRadius: 8 }}>
+                <div key={m.id}
+                  onClick={() => setPayer(m.name)}
+                  onTouchEnd={e => { e.preventDefault(); setPayer(m.name) }}
+                  style={payer === m.name ? { ...S.chipSel, borderRadius:8, WebkitTapHighlightColor:'transparent' } : { ...S.chip, borderRadius:8, WebkitTapHighlightColor:'transparent' }}>
                   {m.name}
-                </button>
+                </div>
               ))}
             </div>
             {errors.payer && <div style={S.err}>{errors.payer}</div>}
           </div>
           <div style={S.group}>
             <label style={S.label}>💳 วิธีชำระเงิน {errors.payment && <span style={{ color: '#D85A30' }}>*</span>}</label>
-            <select value={paymentId} onChange={e => setPaymentId(e.target.value)}
-              style={{ ...S.select, borderColor: errors.payment ? '#D85A30' : '#e0e0d8' }}>
-              <option value="">-- เลือกวิธีชำระ --</option>
-              {payments.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.name}{p.last4 ? ` ···${p.last4}` : ''} ({p.owner})
-                </option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {payments.map(p => {
+                const label = `${p.name}${p.last4 ? ` ···${p.last4}` : ''} (${p.owner})`
+                const isSel = paymentId === p.id
+                return (
+                  <div key={p.id}
+                    onClick={() => setPaymentId(p.id)}
+                    onTouchEnd={e => { e.preventDefault(); setPaymentId(p.id) }}
+                    style={{ padding:'11px 14px', borderRadius:8, border:`1.5px solid ${isSel?'#1D9E75':'#e0e0d8'}`, background:isSel?'#e8f7f2':'#fff', color:isSel?'#0F6E56':'#333', fontWeight:isSel?700:400, fontSize:14, WebkitTapHighlightColor:'transparent', userSelect:'none', cursor:'pointer' }}>
+                    {isSel ? '✓ ' : ''}{label}
+                  </div>
+                )
+              })}
+            </div>
             {errors.payment && <div style={S.err}>{errors.payment}</div>}
           </div>
           <div style={S.group}>
@@ -307,7 +316,7 @@ export default function AddTransaction() {
           </div>
         </div>
         <div style={S.footer}>
-          <button onClick={handleSaveExpense} style={saving ? S.btnDis : S.btnSave} disabled={saving}>
+          <button onClick={handleSaveExpense} onTouchEnd={e => { e.preventDefault(); if(!saving) handleSaveExpense() }} style={saving ? S.btnDis : S.btnSave} disabled={saving}>
             {saving ? 'กำลังบันทึก...' : '✅ Save'}
           </button>
         </div>
@@ -333,8 +342,9 @@ export default function AddTransaction() {
                 <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>ผู้เป็นหนี้</div>
                 <div style={S.grid2}>
                   {members.map(m => (
-                    <button key={m.id} onClick={() => setDFrom(m.name)}
-                      style={dFrom === m.name ? { ...S.chipOrg, borderRadius: 8 } : { ...S.chip, borderRadius: 8 }}>
+                    <div key={m.id} onClick={() => setDFrom(m.name)}
+                      onTouchEnd={e => { e.preventDefault(); setDFrom(m.name) }}
+                      style={dFrom === m.name ? { ...S.chipOrg, borderRadius:8, WebkitTapHighlightColor:'transparent' } : { ...S.chip, borderRadius:8, WebkitTapHighlightColor:'transparent' }}>
                       {m.name}
                     </button>
                   ))}
@@ -346,8 +356,9 @@ export default function AddTransaction() {
                 <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>ผู้รับเงิน</div>
                 <div style={S.grid2}>
                   {members.map(m => (
-                    <button key={m.id} onClick={() => setDTo(m.name)}
-                      style={dTo === m.name ? { ...S.chipSel, borderRadius: 8 } : { ...S.chip, borderRadius: 8 }}>
+                    <div key={m.id} onClick={() => setDTo(m.name)}
+                      onTouchEnd={e => { e.preventDefault(); setDTo(m.name) }}
+                      style={dTo === m.name ? { ...S.chipSel, borderRadius:8, WebkitTapHighlightColor:'transparent' } : { ...S.chip, borderRadius:8, WebkitTapHighlightColor:'transparent' }}>
                       {m.name}
                     </button>
                   ))}
@@ -381,7 +392,7 @@ export default function AddTransaction() {
           )}
         </div>
         <div style={S.footer}>
-          <button onClick={handleSaveDirect} style={saving ? S.btnDis : S.btnOrg} disabled={saving}>
+          <button onClick={handleSaveDirect} onTouchEnd={e => { e.preventDefault(); if(!saving) handleSaveDirect() }} style={saving ? S.btnDis : S.btnOrg} disabled={saving}>
             {saving ? 'กำลังบันทึก...' : '💸 บันทึกหนี้'}
           </button>
         </div>
