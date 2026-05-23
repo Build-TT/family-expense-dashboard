@@ -176,6 +176,13 @@ export default function AddTransaction() {
     loadFromGAS()
   }, [])
 
+  // DEBUG: แสดงจำนวน payments ที่โหลดได้ — ลบออกหลัง debug
+  useEffect(() => {
+    if (!loading) {
+      setToast(`payments: ${payments.length} | cats: ${categories.length} | mems: ${members.length}`)
+    }
+  }, [loading])
+
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500) }
 
   const validate = () => {
