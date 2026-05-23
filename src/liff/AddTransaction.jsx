@@ -26,100 +26,101 @@ const S = {
 }
 
 
-// DatePicker — Custom Calendar UI ไม่พึ่ง native input/select รองรับ LIFF ทุก platform
+// DatePicker — ใช้ div+onTouchEnd แทน button+onClick เพราะ LIFF Android บล็อก onClick
 function DatePicker({ value, onChange }) {
-  const now = new Date()
-  const toISO = (y, m, d) => `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`
-  const [selY, selM, selD] = value ? value.split('-').map(Number) : [now.getFullYear(), now.getMonth()+1, now.getDate()]
+  const now     = new Date()
+  const toISO   = (y, m, d) => `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+  const parsed  = value ? value.split('-').map(Number) : [now.getFullYear(), now.getMonth()+1, now.getDate()]
+  const [selY, selM, selD] = parsed
   const [showCal, setShowCal] = useState(false)
-  const [viewY, setViewY] = useState(selY)
-  const [viewM, setViewM] = useState(selM)
+  const [viewY,   setViewY]   = useState(selY)
+  const [viewM,   setViewM]   = useState(selM)
 
-  const thMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
-  const thDays   = ['อา','จ','อ','พ','พฤ','ศ','ส']
-
+  const thMonths  = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
+  const thDays    = ['อา','จ','อ','พ','พฤ','ศ','ส']
   const today     = toISO(now.getFullYear(), now.getMonth()+1, now.getDate())
-  const yesterday = (() => { const d = new Date(now); d.setDate(d.getDate()-1); return toISO(d.getFullYear(), d.getMonth()+1, d.getDate()) })()
-  const twoDays   = (() => { const d = new Date(now); d.setDate(d.getDate()-2); return toISO(d.getFullYear(), d.getMonth()+1, d.getDate()) })()
+  const yesterday = (() => { const d=new Date(now); d.setDate(d.getDate()-1); return toISO(d.getFullYear(),d.getMonth()+1,d.getDate()) })()
+  const twoDays   = (() => { const d=new Date(now); d.setDate(d.getDate()-2); return toISO(d.getFullYear(),d.getMonth()+1,d.getDate()) })()
 
   const daysInMonth = new Date(viewY, viewM, 0).getDate()
   const firstDay    = new Date(viewY, viewM - 1, 1).getDay()
 
-  const prevMonth = () => { if (viewM === 1) { setViewM(12); setViewY(y => y-1) } else setViewM(m => m-1) }
-  const nextMonth = () => { if (viewM === 12) { setViewM(1); setViewY(y => y+1) } else setViewM(m => m+1) }
+  // ใช้ onTouchEnd + onClick ทั้งคู่เพื่อรองรับ LIFF ทุก platform
+  const tap = (fn) => ({ onClick: fn, onTouchEnd: (e) => { e.preventDefault(); fn(e) } })
 
-  const selectDay = (d) => {
-    onChange(toISO(viewY, viewM, d))
-    setShowCal(false)
-  }
+  const prevMonth = () => { if (viewM===1){setViewM(12);setViewY(y=>y-1)}else setViewM(m=>m-1) }
+  const nextMonth = () => { if (viewM===12){setViewM(1);setViewY(y=>y+1)}else setViewM(m=>m+1) }
 
-  const displayDate = value
-    ? `${selD} ${thMonths[selM-1]} ${selY}`
-    : 'เลือกวันที่'
+  const selectDay = (d) => { onChange(toISO(viewY, viewM, d)); setShowCal(false) }
+  const displayDate = value ? `${selD} ${thMonths[selM-1]} ${selY}` : 'เลือกวันที่'
 
-  const qBtn = (label, val) => (
-    <button key={val} onClick={() => { onChange(val); setShowCal(false) }}
-      style={{ flex:1, padding:'8px 4px', borderRadius:8, border:`1.5px solid ${value===val?'#1D9E75':'#e0e0d8'}`, background:value===val?'#e8f7f2':'#fff', color:value===val?'#0F6E56':'#555', fontSize:12, fontWeight:value===val?700:400, cursor:'pointer' }}>
-      {label}
-    </button>
-  )
+  const tapStyle  = { WebkitTapHighlightColor:'transparent', userSelect:'none', cursor:'pointer' }
+  const qActive   = { flex:1, padding:'9px 4px', borderRadius:8, border:'1.5px solid #1D9E75', background:'#e8f7f2', color:'#0F6E56', fontSize:13, fontWeight:700, textAlign:'center', ...tapStyle }
+  const qNormal   = { flex:1, padding:'9px 4px', borderRadius:8, border:'1.5px solid #e0e0d8', background:'#fff', color:'#555', fontSize:13, textAlign:'center', ...tapStyle }
 
   return (
     <div style={{ position:'relative' }}>
-      {/* Display + toggle */}
-      <button onClick={() => setShowCal(s => !s)}
-        style={{ width:'100%', padding:'10px 14px', borderRadius:8, border:`1.5px solid ${showCal?'#1D9E75':'#e0e0d8'}`, background:'#fff', fontSize:15, textAlign:'left', cursor:'pointer', color:'#222', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+
+      {/* Display button — div ไม่ใช่ button */}
+      <div {...tap(() => setShowCal(s => !s))}
+        style={{ width:'100%', padding:'11px 14px', borderRadius:8, border:`1.5px solid ${showCal?'#1D9E75':'#e0e0d8'}`, background:'#fff', fontSize:15, display:'flex', justifyContent:'space-between', alignItems:'center', boxSizing:'border-box', ...tapStyle }}>
         <span>📅 {displayDate}</span>
         <span style={{ fontSize:12, color:'#888' }}>{showCal ? '▲' : '▼'}</span>
-      </button>
-
-      {/* Quick buttons */}
-      <div style={{ display:'flex', gap:8, marginTop:8 }}>
-        {qBtn('วันนี้', today)}
-        {qBtn('เมื่อวาน', yesterday)}
-        {qBtn('2 วันก่อน', twoDays)}
       </div>
 
-      {/* Calendar popup */}
+      {/* Quick select */}
+      <div style={{ display:'flex', gap:8, marginTop:8 }}>
+        {[{l:'วันนี้',v:today},{l:'เมื่อวาน',v:yesterday},{l:'2 วันก่อน',v:twoDays}].map(q => (
+          <div key={q.v} {...tap(() => { onChange(q.v); setShowCal(false) })}
+            style={value===q.v ? qActive : qNormal}>
+            {q.l}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar */}
       {showCal && (
-        <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:999, background:'#fff', border:'1.5px solid #e0e0d8', borderRadius:12, padding:12, marginTop:4, boxShadow:'0 4px 20px rgba(0,0,0,0.12)' }}>
+        <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:9999, background:'#fff', border:'1.5px solid #e0e0d8', borderRadius:12, padding:12, marginTop:4, boxShadow:'0 8px 32px rgba(0,0,0,0.15)' }}>
+
           {/* Month nav */}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-            <button onClick={prevMonth} style={{ padding:'4px 12px', border:'1px solid #e0e0d8', borderRadius:8, background:'#fff', fontSize:16, cursor:'pointer' }}>‹</button>
+            <div {...tap(prevMonth)} style={{ padding:'6px 16px', border:'1px solid #e0e0d8', borderRadius:8, background:'#f8f8f8', fontSize:18, ...tapStyle }}>‹</div>
             <span style={{ fontWeight:700, fontSize:15 }}>{thMonths[viewM-1]} {viewY}</span>
-            <button onClick={nextMonth} style={{ padding:'4px 12px', border:'1px solid #e0e0d8', borderRadius:8, background:'#fff', fontSize:16, cursor:'pointer' }}>›</button>
+            <div {...tap(nextMonth)} style={{ padding:'6px 16px', border:'1px solid #e0e0d8', borderRadius:8, background:'#f8f8f8', fontSize:18, ...tapStyle }}>›</div>
           </div>
+
           {/* Day headers */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2, marginBottom:4 }}>
-            {thDays.map(d => (
-              <div key={d} style={{ textAlign:'center', fontSize:11, color:'#888', padding:'2px 0' }}>{d}</div>
-            ))}
+            {thDays.map(d => <div key={d} style={{ textAlign:'center', fontSize:11, color:'#888', padding:'2px 0' }}>{d}</div>)}
           </div>
-          {/* Day grid */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2 }}>
-            {Array.from({length: firstDay}).map((_, i) => <div key={'e'+i} />)}
-            {Array.from({length: daysInMonth}, (_, i) => i+1).map(d => {
+
+          {/* Days */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3 }}>
+            {Array.from({length:firstDay}).map((_,i) => <div key={'e'+i} />)}
+            {Array.from({length:daysInMonth},(_,i)=>i+1).map(d => {
               const iso = toISO(viewY, viewM, d)
-              const isSelected = iso === value
-              const isToday    = iso === today
+              const isSel   = iso === value
+              const isToday = iso === today
               return (
-                <button key={d} onClick={() => selectDay(d)}
-                  style={{ padding:'7px 2px', borderRadius:8, border:'none', background: isSelected ? '#1D9E75' : isToday ? '#e8f7f2' : '#fff', color: isSelected ? '#fff' : isToday ? '#0F6E56' : '#222', fontWeight: isSelected||isToday ? 700 : 400, fontSize:13, cursor:'pointer', textAlign:'center' }}>
+                <div key={d} {...tap(() => selectDay(d))}
+                  style={{ padding:'8px 2px', borderRadius:8, background: isSel?'#1D9E75': isToday?'#e8f7f2':'transparent', color: isSel?'#fff': isToday?'#0F6E56':'#222', fontWeight: isSel||isToday?700:400, fontSize:14, textAlign:'center', ...tapStyle }}>
                   {d}
-                </button>
+                </div>
               )
             })}
           </div>
+
           {/* Close */}
-          <button onClick={() => setShowCal(false)}
-            style={{ width:'100%', marginTop:10, padding:'8px', border:'1px solid #e0e0d8', borderRadius:8, background:'#f8f8f8', color:'#555', fontSize:13, cursor:'pointer' }}>
+          <div {...tap(() => setShowCal(false))}
+            style={{ marginTop:12, padding:'9px', border:'1px solid #e0e0d8', borderRadius:8, background:'#f8f8f8', color:'#555', fontSize:13, textAlign:'center', ...tapStyle }}>
             ปิด
-          </button>
+          </div>
         </div>
       )}
     </div>
   )
 }
+
 
 export default function AddTransaction() {
   const [tab,        setTab]        = useState('expense') // 'expense' | 'direct'
