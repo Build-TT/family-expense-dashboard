@@ -25,6 +25,42 @@ const S = {
   tabAct:  { flex: 1, padding: '10px', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', borderBottom: '2px solid currentColor' },
 }
 
+
+// DatePicker — รองรับ LIFF browser ที่ block input[type=date]
+function DatePicker({ value, onChange }) {
+  const today = todayISO()
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+  const twoDaysAgo = new Date(Date.now() - 2*86400000).toISOString().slice(0, 10)
+  const fmt = (iso) => {
+    if (!iso) return ''
+    const [y, m, d] = iso.split('-')
+    return `${d}/${m}/${y}`
+  }
+  const quickDates = [
+    { label: 'วันนี้', value: today },
+    { label: 'เมื่อวาน', value: yesterday },
+    { label: '2 วันก่อน', value: twoDaysAgo },
+  ]
+  return (
+    <div>
+      <input
+        type="date"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e0e0d8', fontSize: 15, outline: 'none', boxSizing: 'border-box', colorScheme: 'light', WebkitAppearance: 'none', appearance: 'none', background: '#fff' }}
+      />
+      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        {quickDates.map(q => (
+          <button key={q.value} onClick={() => onChange(q.value)}
+            style={{ flex: 1, padding: '6px 4px', borderRadius: 8, border: `1.5px solid ${value === q.value ? '#1D9E75' : '#e0e0d8'}`, background: value === q.value ? '#e8f7f2' : '#fff', color: value === q.value ? '#0F6E56' : '#555', fontSize: 12, fontWeight: value === q.value ? 700 : 400, cursor: 'pointer' }}>
+            {q.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function AddTransaction() {
   const [tab,        setTab]        = useState('expense') // 'expense' | 'direct'
   // expense fields
@@ -150,7 +186,7 @@ export default function AddTransaction() {
         <div style={S.body}>
           <div style={S.group}>
             <label style={S.label}>📅 วันที่</label>
-            <input type="date" value={date} onChange={e => setDate(e.target.value)} style={S.input} />
+            <DatePicker value={date} onChange={setDate} />
           </div>
           <div style={S.group}>
             <label style={S.label}>🏪 ชื่อรายการ</label>
@@ -225,7 +261,7 @@ export default function AddTransaction() {
         <div style={S.body}>
           <div style={S.group}>
             <label style={S.label}>📅 วันที่</label>
-            <input type="date" value={dDate} onChange={e => setDDate(e.target.value)} style={S.input} />
+            <DatePicker value={dDate} onChange={setDDate} />
           </div>
 
           {/* From → To แบบ visual */}
