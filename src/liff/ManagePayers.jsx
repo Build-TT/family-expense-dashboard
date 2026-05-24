@@ -62,7 +62,7 @@ export default function ManagePayers() {
     setSaving(true)
     try {
       const data = await sendToGAS({ action: 'editMember', id, name: editName.trim() })
-      if (data.status === 'ok') { showToast('✅ แก้ไขเรียบร้อยแล้ว'); setEditId(null); load() }
+      if (data.status === 'ok') { showToast(lang==='en'?'✅ Updated!':'✅ แก้ไขเรียบร้อยแล้ว'); setEditId(null); load() }
       else showToast('❌ ' + (data.message || 'เกิดข้อผิดพลาด'))
     } catch { showToast('❌ เชื่อมต่อไม่ได้') }
     setSaving(false)
@@ -83,7 +83,7 @@ export default function ManagePayers() {
     if (!confirm(lang==='en'?`Remove "${name}" from system?`:`ลบ "${name}" ออกจากระบบ?`)) return
     try {
       const data = await sendToGAS({ action: 'removeMember', id })
-      if (data.status === 'ok') { showToast('✅ ลบเรียบร้อยแล้ว'); load() }
+      if (data.status === 'ok') { showToast(lang==='en'?'✅ Deleted!':'✅ ลบเรียบร้อยแล้ว'); load() }
       else showToast('❌ ' + (data.message || 'เกิดข้อผิดพลาด'))
     } catch { showToast('❌ เชื่อมต่อไม่ได้') }
   }
@@ -104,8 +104,8 @@ export default function ManagePayers() {
               <div style={S.cardRow}>
                 <div style={S.avatar}>{m.name.substring(0, 2).toUpperCase()}</div>
                 <div style={S.cardInfo}>{m.name}</div>
-                <button onClick={() => startEdit(m)} style={S.btnEdit}>แก้ไข</button>
-                <button onClick={() => handleRemove(m.id, m.name)} style={S.btnDel}>ลบ</button>
+                <button onClick={() => startEdit(m)} style={S.btnEdit}>{lang==='en'?'Edit':'แก้ไข'}</button>
+                <button onClick={() => handleRemove(m.id, m.name)} style={S.btnDel}>{lang==='en'?'Delete':'ลบ'}</button>
               </div>
               {editId === m.id && (
                 <div style={S.editBox}>
