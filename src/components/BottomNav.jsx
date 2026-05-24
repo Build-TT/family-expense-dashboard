@@ -1,19 +1,24 @@
-// Bottom Navigation Bar — แสดงทุกหน้า
-const NAV_ITEMS = [
-  { path: '/',                  icon: '📊', label: 'Dashboard' },
-  { path: '/liff/add',          icon: '➕', label: 'เพิ่ม' },
-  { path: '/liff/payments',     icon: '💳', label: 'บัตร' },
-  { path: '/liff/categories',   icon: '🏷', label: 'หมวด' },
-  { path: '/liff/payers',       icon: '👤', label: 'คน' },
-]
+import { getLang } from '../i18n'
+
+const NAV_LABELS = {
+  th: { dashboard: 'Dashboard', add: 'เพิ่ม', payments: 'บัตร', categories: 'หมวด', payers: 'คน' },
+  en: { dashboard: 'Dashboard', add: 'Add',   payments: 'Cards', categories: 'Cats', payers: 'Members' },
+}
 
 export default function BottomNav() {
   const current = window.location.pathname
+  const lang    = getLang()
+  const L       = NAV_LABELS[lang] || NAV_LABELS.th
 
-  const go = (path) => {
-    if (path === current) return
-    window.location.href = path
-  }
+  const NAV_ITEMS = [
+    { path: '/',                icon: '📊', label: L.dashboard },
+    { path: '/liff/add',        icon: '➕', label: L.add },
+    { path: '/liff/payments',   icon: '💳', label: L.payments },
+    { path: '/liff/categories', icon: '🏷', label: L.categories },
+    { path: '/liff/payers',     icon: '👤', label: L.payers },
+  ]
+
+  const go = (path) => { if (path !== current) window.location.href = path }
 
   return (
     <div style={{
@@ -34,8 +39,7 @@ export default function BottomNav() {
             <span style={{ fontSize: 20 }}>{item.icon}</span>
             <span style={{
               fontSize: 10, fontWeight: active ? 700 : 400,
-              color: active ? '#1D9E75' : '#999',
-              letterSpacing: '-0.2px'
+              color: active ? '#1D9E75' : '#999', letterSpacing: '-0.2px'
             }}>{item.label}</span>
             {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#1D9E75' }} />}
           </button>
