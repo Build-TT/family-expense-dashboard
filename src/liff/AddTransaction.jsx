@@ -426,7 +426,7 @@ export default function AddTransaction() {
                       onTouchEnd={e => { e.preventDefault(); setDFrom(m.name) }}
                       style={dFrom === m.name ? { ...S.chipOrg, borderRadius:8, WebkitTapHighlightColor:'transparent' } : { ...S.chip, borderRadius:8, WebkitTapHighlightColor:'transparent' }}>
                       {m.name}
-                    </button>
+                    </div>
                   ))}
                 </div>
                 {errors.from && <div style={S.err}>{errors.from}</div>}
@@ -440,7 +440,7 @@ export default function AddTransaction() {
                       onTouchEnd={e => { e.preventDefault(); setDTo(m.name) }}
                       style={dTo === m.name ? { ...S.chipSel, borderRadius:8, WebkitTapHighlightColor:'transparent' } : { ...S.chip, borderRadius:8, WebkitTapHighlightColor:'transparent' }}>
                       {m.name}
-                    </button>
+                    </div>
                   ))}
                 </div>
                 {errors.to && <div style={S.err}>{errors.to}</div>}
