@@ -38,8 +38,12 @@ function DatePicker({ value, onChange, lang }) {
   const [viewY,   setViewY]   = useState(selY)
   const [viewM,   setViewM]   = useState(selM)
 
-  const thMonths  = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
-  const thDays    = ['อา','จ','อ','พ','พฤ','ศ','ส']
+  const thMonths  = lang==='en'
+    ? ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    : ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
+  const thDays    = lang==='en'
+    ? ['Su','Mo','Tu','We','Th','Fr','Sa']
+    : ['อา','จ','อ','พ','พฤ','ศ','ส']
   const today     = toISO(now.getFullYear(), now.getMonth()+1, now.getDate())
   const yesterday = (() => { const d=new Date(now); d.setDate(d.getDate()-1); return toISO(d.getFullYear(),d.getMonth()+1,d.getDate()) })()
   const twoDays   = (() => { const d=new Date(now); d.setDate(d.getDate()-2); return toISO(d.getFullYear(),d.getMonth()+1,d.getDate()) })()
@@ -150,7 +154,6 @@ export default function AddTransaction() {
   const [errors,     setErrors]     = useState({})
   const [dupItems,   setDupItems]   = useState([])
   const [showPay,    setShowPay]    = useState(false)
-  const [lang,       setLang]       = useState(getLang())
 
   useEffect(() => { initLiff('add') }, [])
   useEffect(() => {
@@ -300,7 +303,7 @@ export default function AddTransaction() {
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
           <div style={{ background:'#fff', borderRadius:16, padding:20, width:'100%', maxWidth:420 }}>
             <div style={{ fontSize:16, fontWeight:700, color:'#D85A30', marginBottom:8 }}>{lang==='en'?'⚠️ Duplicate found':'⚠️ พบรายการที่คล้ายกัน'}</div>
-            <div style={{ fontSize:13, color:'#666', marginBottom:12 }}>{lang==='en'?'A transaction with same date, amount & payment exists:':'มีรายการที่มีวันที่ จำนวนเงิน และบัตรตรงกันอยู่แล้ว:'}</div>
+            <div style={{ fontSize:13, color:'#666', marginBottom:12 }}>มีรายการที่มีวันที่ จำนวนเงิน และบัตรตรงกันอยู่แล้ว:</div>
             {dupItems.map((item, i) => (
               <div key={i} style={{ background:'#fff9f7', border:'1px solid #f5c4b3', borderRadius:8, padding:'10px 12px', marginBottom:8 }}>
                 <div style={{ fontWeight:600, fontSize:14 }}>{item.name}</div>
@@ -441,7 +444,7 @@ export default function AddTransaction() {
             <LangToggle />
           </div>
           <LangToggle />
-          <div style={S.hsub}>{lang==='en'?'Full amount, no split':'รายการที่ไม่ต้องหาร คิดเต็มจำนวน'}</div>
+          <div style={S.hsub}>รายการที่ไม่ต้องหาร คิดเต็มจำนวน</div>
         </div>
         <div style={S.body}>
           <div style={S.group}>
@@ -454,7 +457,7 @@ export default function AddTransaction() {
             <div style={{ fontSize: 13, color: '#888', marginBottom: 10, fontWeight: 600 }}>ใครเป็นหนี้ใคร?</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>{lang==='en'?'Debtor':'ผู้เป็นหนี้'}</div>
+                <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>ผู้เป็นหนี้</div>
                 <div style={S.grid2}>
                   {members.map(m => (
                     <div key={m.id} onClick={() => setDFrom(m.name)}
@@ -468,7 +471,7 @@ export default function AddTransaction() {
               </div>
               <div style={{ fontSize: 20, color: '#BA7517', flexShrink: 0, paddingTop: 16 }}>→</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>{lang==='en'?'Creditor':'ผู้รับเงิน'}</div>
+                <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>ผู้รับเงิน</div>
                 <div style={S.grid2}>
                   {members.map(m => (
                     <div key={m.id} onClick={() => setDTo(m.name)}
