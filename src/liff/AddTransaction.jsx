@@ -147,6 +147,7 @@ export default function AddTransaction() {
   const [toast,      setToast]      = useState('')
   const [errors,     setErrors]     = useState({})
   const [dupItems,   setDupItems]   = useState([])
+  const [showPay,    setShowPay]    = useState(false)
 
   useEffect(() => { initLiff('add') }, [])
 
@@ -378,19 +379,34 @@ export default function AddTransaction() {
           </div>
           <div style={S.group}>
             <label style={S.label}>💳 วิธีชำระเงิน {errors.payment && <span style={{ color: '#D85A30' }}>*</span>}</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {payments.map(p => {
-                const label = `${p.name}${p.last4 ? ` ···${p.last4}` : ''} (${p.owner})`
-                const isSel = paymentId === p.id
-                return (
-                  <label key={p.id} style={{ display:'block', padding:'11px 14px', borderRadius:8, border:`1.5px solid ${isSel?'#1D9E75':'#e0e0d8'}`, background:isSel?'#e8f7f2':'#fff', color:isSel?'#0F6E56':'#333', fontWeight:isSel?700:400, fontSize:14, cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
-                    <input type="radio" name="paymentId" value={p.id} checked={isSel} onChange={() => setPaymentId(p.id)}
-                      style={{ position:'absolute', opacity:0, width:0, height:0 }} />
-                    {isSel ? '✓ ' : ''}{label}
-                  </label>
-                )
-              })}
+            {/* Accordion header — กดเพื่อเปิด/ปิด */}
+            <div onClick={() => setShowPay(s => !s)}
+              onTouchEnd={e => { e.preventDefault(); setShowPay(s => !s) }}
+              style={{ padding:'11px 14px', borderRadius: showPay ? '8px 8px 0 0' : 8, border:`1.5px solid ${errors.payment?'#D85A30': paymentId?'#1D9E75':'#e0e0d8'}`, background: paymentId?'#e8f7f2':'#fff', display:'flex', justifyContent:'space-between', alignItems:'center', cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+              <span style={{ fontSize:14, color: paymentId?'#0F6E56':'#aaa', fontWeight: paymentId?600:400 }}>
+                {paymentId
+                  ? '✓ ' + (() => { const p=payments.find(x=>x.id===paymentId); return p?`${p.name}${p.last4?` ···${p.last4}`:''} (${p.owner})`:'' })()
+                  : 'เลือกวิธีชำระเงิน'}
+              </span>
+              <span style={{ fontSize:12, color:'#888' }}>{showPay ? '▲' : '▼'}</span>
             </div>
+            {/* Accordion body */}
+            {showPay && (
+              <div style={{ border:'1.5px solid #1D9E75', borderTop:'none', borderRadius:'0 0 8px 8px', overflow:'hidden' }}>
+                {payments.map((p, idx) => {
+                  const label = `${p.name}${p.last4 ? ` ···${p.last4}` : ''} (${p.owner})`
+                  const isSel = paymentId === p.id
+                  return (
+                    <label key={p.id} style={{ display:'block', padding:'11px 14px', borderTop: idx>0?'1px solid #f0f0ec':'none', background:isSel?'#e8f7f2':'#fff', color:isSel?'#0F6E56':'#333', fontWeight:isSel?700:400, fontSize:14, cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
+                      <input type="radio" name="paymentId" value={p.id} checked={isSel}
+                        onChange={() => { setPaymentId(p.id); setShowPay(false) }}
+                        style={{ position:'absolute', opacity:0, width:0, height:0 }} />
+                      {isSel ? '✓ ' : ''}{label}
+                    </label>
+                  )
+                })}
+              </div>
+            )}
             {errors.payment && <div style={S.err}>{errors.payment}</div>}
           </div>
           <div style={S.group}>
