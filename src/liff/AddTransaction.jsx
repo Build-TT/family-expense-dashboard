@@ -29,7 +29,7 @@ const S = {
 
 
 // DatePicker — ใช้ div+onTouchEnd แทน button+onClick เพราะ LIFF Android บล็อก onClick
-function DatePicker({ value, onChange }) {
+function DatePicker({ value, onChange, lang }) {
   const now     = new Date()
   const toISO   = (y, m, d) => `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`
   const parsed  = value ? value.split('-').map(Number) : [now.getFullYear(), now.getMonth()+1, now.getDate()]
@@ -54,7 +54,7 @@ function DatePicker({ value, onChange }) {
   const nextMonth = () => { if (viewM===12){setViewM(1);setViewY(y=>y+1)}else setViewM(m=>m+1) }
 
   const selectDay = (d) => { onChange(toISO(viewY, viewM, d)); setShowCal(false) }
-  const displayDate = value ? `${selD} ${thMonths[selM-1]} ${selY}` : 'เลือกวันที่'
+  const displayDate = value ? `${selD} ${thMonths[selM-1]} ${selY}` : lang==='en'?'Select date':'เลือกวันที่'
 
   const tapStyle  = { WebkitTapHighlightColor:'transparent', userSelect:'none', cursor:'pointer' }
   const qActive   = { flex:1, padding:'9px 4px', borderRadius:8, border:'1.5px solid #1D9E75', background:'#e8f7f2', color:'#0F6E56', fontSize:13, fontWeight:700, textAlign:'center', ...tapStyle }
@@ -72,7 +72,7 @@ function DatePicker({ value, onChange }) {
 
       {/* Quick select */}
       <div style={{ display:'flex', gap:8, marginTop:8 }}>
-        {[{l:'วันนี้',v:today},{l:'เมื่อวาน',v:yesterday},{l:'2 วันก่อน',v:twoDays}].map(q => (
+        {[{l:lang==='en'?'Today':'วันนี้',v:today},{l:lang==='en'?'Yesterday':'เมื่อวาน',v:yesterday},{l:lang==='en'?'2 days ago':'2 วันก่อน',v:twoDays}].map(q => (
           <div key={q.v} {...tap(() => { onChange(q.v); setShowCal(false) })}
             style={value===q.v ? qActive : qNormal}>
             {q.l}
@@ -193,21 +193,21 @@ export default function AddTransaction() {
 
   const validate = () => {
     const e = {}
-    if (!name.trim())  e.name     = 'กรุณาใส่ชื่อรายการ'
-    if (!amount || parseFloat(amount) <= 0) e.amount = 'กรุณาใส่จำนวนเงิน'
-    if (!category)     e.category = 'กรุณาเลือกหมวดหมู่'
-    if (!payer)        e.payer    = 'กรุณาเลือกผู้จ่าย'
-    if (!paymentId)    e.payment  = 'กรุณาเลือกวิธีชำระ'
+    if (!name.trim())  e.name     = lang==='en'?'Required':'กรุณาใส่ชื่อรายการ'
+    if (!amount || parseFloat(amount) <= 0) e.amount = lang==='en'?'Required':'กรุณาใส่จำนวนเงิน'
+    if (!category)     e.category = lang==='en'?'Required':'กรุณาเลือกหมวดหมู่'
+    if (!payer)        e.payer    = lang==='en'?'Required':'กรุณาเลือกผู้จ่าย'
+    if (!paymentId)    e.payment  = lang==='en'?'Required':'กรุณาเลือกวิธีชำระ'
     setErrors(e)
     return Object.keys(e).length === 0
   }
 
   const validateDirect = () => {
     const e = {}
-    if (!dFrom)                              e.from   = 'กรุณาเลือกผู้เป็นหนี้'
-    if (!dTo)                                e.to     = 'กรุณาเลือกผู้รับเงิน'
+    if (!dFrom)                              e.from   = lang==='en'?'Required':'กรุณาเลือกผู้เป็นหนี้'
+    if (!dTo)                                e.to     = lang==='en'?'Required':'กรุณาเลือกผู้รับเงิน'
     if (dFrom && dTo && dFrom === dTo)       e.to     = 'ต้องเป็นคนละคนกัน'
-    if (!dAmount || parseFloat(dAmount) <= 0) e.amount = 'กรุณาใส่จำนวนเงิน'
+    if (!dAmount || parseFloat(dAmount) <= 0) e.amount = lang==='en'?'Required':'กรุณาใส่จำนวนเงิน'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -243,7 +243,7 @@ export default function AddTransaction() {
         payer, paymentId, note: note.trim()
       })
       if (data.status === 'ok') {
-        showToast('✅ บันทึกเรียบร้อยแล้ว!')
+        showToast(lang==='en'?'✅ Saved!':'✅ บันทึกเรียบร้อยแล้ว!')
         setTimeout(() => {
           setName(''); setAmount(''); setCategory(''); setPayer(''); setPaymentId(''); setNote('')
           setErrors({})
@@ -272,7 +272,7 @@ export default function AddTransaction() {
     setSaving(false)
   }
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>กำลังโหลด...</div>
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>{lang==='en'?'Loading...':'กำลังโหลด...'}</div>
 
   const confirmSave = async () => {
     setDupItems([])
@@ -298,7 +298,7 @@ export default function AddTransaction() {
       {dupItems.length > 0 && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
           <div style={{ background:'#fff', borderRadius:16, padding:20, width:'100%', maxWidth:420 }}>
-            <div style={{ fontSize:16, fontWeight:700, color:'#D85A30', marginBottom:8 }}>⚠️ พบรายการที่คล้ายกัน</div>
+            <div style={{ fontSize:16, fontWeight:700, color:'#D85A30', marginBottom:8 }}>{lang==='en'?'⚠️ Duplicate found':'⚠️ พบรายการที่คล้ายกัน'}</div>
             <div style={{ fontSize:13, color:'#666', marginBottom:12 }}>มีรายการที่มีวันที่ จำนวนเงิน และบัตรตรงกันอยู่แล้ว:</div>
             {dupItems.map((item, i) => (
               <div key={i} style={{ background:'#fff9f7', border:'1px solid #f5c4b3', borderRadius:8, padding:'10px 12px', marginBottom:8 }}>
@@ -309,11 +309,11 @@ export default function AddTransaction() {
             <div style={{ display:'flex', gap:10, marginTop:16 }}>
               <label onClick={() => setDupItems([])}
                 style={{ flex:1, padding:'12px', borderRadius:10, border:'1.5px solid #e0e0d8', background:'#fff', fontSize:14, textAlign:'center', cursor:'pointer', color:'#555', fontWeight:600 }}>
-                ❌ ยกเลิก
+                {lang==='en'?'❌ Cancel':'❌ ยกเลิก'}
               </label>
               <label onClick={confirmSave}
                 style={{ flex:1, padding:'12px', borderRadius:10, background:'#1D9E75', fontSize:14, textAlign:'center', cursor:'pointer', color:'#fff', fontWeight:700 }}>
-                ✅ ยืนยันบันทึก
+                {lang==='en'?'✅ Confirm':'✅ ยืนยันบันทึก'}
               </label>
             </div>
           </div>
@@ -325,11 +325,11 @@ export default function AddTransaction() {
       <div style={{ display: 'flex', borderBottom: '1px solid #eee', background: '#fff' }}>
         <button onClick={() => { setTab('expense'); setErrors({}) }} onTouchEnd={e => { e.preventDefault(); setTab('expense'); setErrors({}) }}
           style={{ ...( tab === 'expense' ? S.tabAct : S.tab), color: tab === 'expense' ? '#1D9E75' : '#999', background: 'none' }}>
-          ➕ รายจ่ายปกติ
+          {lang==='en'?'➕ Expense':'➕ รายจ่ายปกติ'}
         </button>
         <button onClick={() => { setTab('direct'); setErrors({}) }} onTouchEnd={e => { e.preventDefault(); setTab('direct'); setErrors({}) }}
           style={{ ...(tab === 'direct' ? S.tabAct : S.tab), color: tab === 'direct' ? '#BA7517' : '#999', background: 'none' }}>
-          💸 หนี้โดยตรง
+          {lang==='en'?'💸 Direct Debt':'💸 หนี้โดยตรง'}
         </button>
       </div>
 
@@ -345,7 +345,7 @@ export default function AddTransaction() {
         <div style={S.body}>
           <div style={S.group}>
             <label style={S.label}>📅 {t('date', lang)}</label>
-            <DatePicker value={date} onChange={setDate} />
+            <DatePicker value={date} onChange={setDate} lang={lang} />
           </div>
           <div style={S.group}>
             <label style={S.label}>🏪 {t('itemName', lang)}</label>
@@ -445,7 +445,7 @@ export default function AddTransaction() {
         <div style={S.body}>
           <div style={S.group}>
             <label style={S.label}>📅 {t('date', lang)}</label>
-            <DatePicker value={dDate} onChange={setDDate} />
+            <DatePicker value={dDate} onChange={setDDate} lang={lang} />
           </div>
 
           {/* From → To แบบ visual */}
