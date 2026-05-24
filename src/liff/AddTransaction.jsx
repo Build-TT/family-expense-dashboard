@@ -154,6 +154,7 @@ export default function AddTransaction() {
   const [errors,     setErrors]     = useState({})
   const [dupItems,   setDupItems]   = useState([])
   const [showPay,    setShowPay]    = useState(false)
+  const [lang,       setLang]       = useState(getLang())
 
   useEffect(() => { initLiff('add') }, [])
   useEffect(() => {
