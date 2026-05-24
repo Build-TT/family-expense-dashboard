@@ -2,7 +2,6 @@ export const SHEET_ID = import.meta.env.VITE_SHEET_ID || ''
 export const API_KEY  = import.meta.env.VITE_API_KEY  || ''
 export const GAS_URL  = import.meta.env.VITE_GAS_URL  || ''
 
-// LIFF IDs สำหรับแต่ละ page
 export const LIFF_IDS = {
   add:        '2010175807-fSwI8IpR',
   payments:   '2010175807-5VitVspF',
@@ -12,17 +11,18 @@ export const LIFF_IDS = {
 
 const BASE = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values`
 
-// init LIFF — ต้องเรียกก่อน render ทุก LIFF page
 export async function initLiff(pageKey) {
   try {
+    if (typeof liff === 'undefined') return // ไม่มี SDK ข้ามไป
     const liffId = LIFF_IDS[pageKey]
     if (!liffId) return
     await liff.init({ liffId })
-    if (!liff.isLoggedIn()) {
+    if (!liff.isInClient() && !liff.isLoggedIn()) {
       liff.login()
     }
   } catch (e) {
     console.warn('LIFF init error:', e)
+    // ไม่ crash — ยังใช้งานได้ใน browser ปกติ
   }
 }
 
