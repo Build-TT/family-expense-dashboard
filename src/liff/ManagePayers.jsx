@@ -80,7 +80,7 @@ export default function ManagePayers() {
   }
 
   const handleRemove = async (id, name) => {
-    if (!confirm(`ลบ "${name}" ออกจากระบบ?`)) return
+    if (!confirm(lang==='en'?`Remove "${name}" from system?`:`ลบ "${name}" ออกจากระบบ?`)) return
     try {
       const data = await sendToGAS({ action: 'removeMember', id })
       if (data.status === 'ok') { showToast('✅ ลบเรียบร้อยแล้ว'); load() }
@@ -93,10 +93,10 @@ export default function ManagePayers() {
   return (
     <div style={S.wrap}>
       {toast && <div style={S.toast}>{toast}</div>}
-      <div style={{ ...S.header, display:'flex', justifyContent:'space-between', alignItems:'center' }}><div style={S.htitle}>👤 จัดการผู้จ่าย</div><LangToggle /></div>
+      <div style={{ ...S.header, display:'flex', justifyContent:'space-between', alignItems:'center' }}><div style={S.htitle}>{lang==='en'?'👤 Manage Members':'👤 จัดการผู้จ่าย'}</div><LangToggle /></div>
       <div style={S.body}>
-        <div style={S.note}>⚠️ การลบสมาชิกจะไม่ลบรายการที่บันทึกไปแล้ว</div>
-        <div style={S.section}>สมาชิกปัจจุบัน ({members.length})</div>
+        <div style={S.note}>{lang==='en'?'⚠️ Removing member will not delete existing records':'⚠️ การลบสมาชิกจะไม่ลบรายการที่บันทึกไปแล้ว'}</div>
+        <div style={S.section}>{lang==='en'?`Members (${members.length})`:`สมาชิกปัจจุบัน (${members.length})`}</div>
         {members.length === 0
           ? <div style={{ color: '#aaa', fontSize: 14 }}>ยังไม่มีสมาชิก</div>
           : members.map(m => (
