@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { fetchSheet, sendToGAS, todayISO, GAS_URL, initLiff } from './utils'
 import LangToggle from '../components/LangToggle.jsx'
-import { getLang } from '../i18n'
+import { getLang, t } from '../i18n'
 
 const S = {
   wrap:    { maxWidth: 480, margin: '0 auto', padding: '0 0 130px', fontFamily: 'system-ui,sans-serif' },
@@ -335,32 +335,34 @@ export default function AddTransaction() {
 
       {/* ===== TAB: EXPENSE ===== */}
       {tab === 'expense' && <>
-        <div style={{ ...S.header, background: '#1D9E75', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <div style={S.htitle}>➕ เพิ่มรายจ่าย</div>
-          <LangToggle />
-          <div style={S.hsub}>กรอกข้อมูลแล้วกด Save</div>
+        <div style={{ ...S.header, background: '#1D9E75' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <div style={S.htitle}>➕ {t('addExpense', lang)}</div>
+            <LangToggle />
+          </div>
+          <div style={S.hsub}>{t('itemPlaceholder', lang)}</div>
         </div>
         <div style={S.body}>
           <div style={S.group}>
-            <label style={S.label}>📅 วันที่</label>
+            <label style={S.label}>📅 {t('date', lang)}</label>
             <DatePicker value={date} onChange={setDate} />
           </div>
           <div style={S.group}>
-            <label style={S.label}>🏪 ชื่อรายการ</label>
+            <label style={S.label}>🏪 {t('itemName', lang)}</label>
             <input type="text" value={name} onChange={e => setName(e.target.value)}
-              placeholder="เช่น ค่าข้าว, Netflix"
+              placeholder={t('itemPlaceholder', lang)}
               style={{ ...S.input, borderColor: errors.name ? '#D85A30' : '#e0e0d8' }} />
             {errors.name && <div style={S.err}>{errors.name}</div>}
           </div>
           <div style={S.group}>
-            <label style={S.label}>💰 จำนวนเงิน (บาท)</label>
+            <label style={S.label}>💰 {t('amount', lang)}</label>
             <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
               placeholder="0" inputMode="decimal"
               style={{ ...S.input, borderColor: errors.amount ? '#D85A30' : '#e0e0d8', fontSize: 18, fontWeight: 600 }} />
             {errors.amount && <div style={S.err}>{errors.amount}</div>}
           </div>
           <div style={S.group}>
-            <label style={S.label}>🏷 หมวดหมู่ {errors.category && <span style={{ color: '#D85A30' }}>*</span>}</label>
+            <label style={S.label}>🏷 {t('category', lang)} {errors.category && <span style={{ color: '#D85A30' }}>*</span>}</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {categories.map(c => (
                 <label key={c.id} style={category === c.name ? {...S.chipSel, WebkitTapHighlightColor:'transparent'} : {...S.chip, WebkitTapHighlightColor:'transparent'}}>
@@ -373,7 +375,7 @@ export default function AddTransaction() {
             {errors.category && <div style={S.err}>{errors.category}</div>}
           </div>
           <div style={S.group}>
-            <label style={S.label}>👤 ผู้จ่าย {errors.payer && <span style={{ color: '#D85A30' }}>*</span>}</label>
+            <label style={S.label}>👤 {t('payer', lang)} {errors.payer && <span style={{ color: '#D85A30' }}>*</span>}</label>
             <div style={S.grid2}>
               {members.map(m => (
                 <label key={m.id} style={payer === m.name ? { ...S.chipSel, borderRadius:8, WebkitTapHighlightColor:'transparent' } : { ...S.chip, borderRadius:8, WebkitTapHighlightColor:'transparent' }}>
@@ -386,7 +388,7 @@ export default function AddTransaction() {
             {errors.payer && <div style={S.err}>{errors.payer}</div>}
           </div>
           <div style={S.group}>
-            <label style={S.label}>💳 วิธีชำระเงิน {errors.payment && <span style={{ color: '#D85A30' }}>*</span>}</label>
+            <label style={S.label}>💳 {t('paymentMethod', lang)} {errors.payment && <span style={{ color: '#D85A30' }}>*</span>}</label>
             {/* Accordion header — กดเพื่อเปิด/ปิด */}
             <div onClick={() => setShowPay(s => !s)}
               onTouchEnd={e => { e.preventDefault(); setShowPay(s => !s) }}
@@ -394,7 +396,7 @@ export default function AddTransaction() {
               <span style={{ fontSize:14, color: paymentId?'#0F6E56':'#aaa', fontWeight: paymentId?600:400 }}>
                 {paymentId
                   ? '✓ ' + (() => { const p=payments.find(x=>x.id===paymentId); return p?`${p.name}${p.last4?` ···${p.last4}`:''} (${p.owner})`:'' })()
-                  : 'เลือกวิธีชำระเงิน'}
+                  : t('selectPayment', lang)}
               </span>
               <span style={{ fontSize:12, color:'#888' }}>{showPay ? '▲' : '▼'}</span>
             </div>
@@ -418,28 +420,31 @@ export default function AddTransaction() {
             {errors.payment && <div style={S.err}>{errors.payment}</div>}
           </div>
           <div style={S.group}>
-            <label style={S.label}>📝 หมายเหตุ (ไม่บังคับ)</label>
+            <label style={S.label}>📝 {t('noteOptional', lang)}</label>
             <input type="text" value={note} onChange={e => setNote(e.target.value)}
-              placeholder="หมายเหตุเพิ่มเติม" style={S.input} />
+              placeholder={t('notePlaceholder', lang)} style={S.input} />
           </div>
         </div>
         <div style={S.footer}>
           <button onClick={handleSaveExpense} onTouchEnd={e => { e.preventDefault(); if(!saving) handleSaveExpense() }} style={saving ? S.btnDis : S.btnSave} disabled={saving}>
-            {saving ? 'กำลังบันทึก...' : '✅ Save'}
+            {saving ? 'กำลังบันทึก...' : t('saveExpense', lang)}
           </button>
         </div>
       </>}
 
       {/* ===== TAB: DIRECT DEBT ===== */}
       {tab === 'direct' && <>
-        <div style={{ ...S.header, background: '#BA7517', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <div style={S.htitle}>💸 หนี้โดยตรง</div>
+        <div style={{ ...S.header, background: '#BA7517' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <div style={S.htitle}>💸 {t('addDirectDebt', lang)}</div>
+            <LangToggle />
+          </div>
           <LangToggle />
           <div style={S.hsub}>รายการที่ไม่ต้องหาร คิดเต็มจำนวน</div>
         </div>
         <div style={S.body}>
           <div style={S.group}>
-            <label style={S.label}>📅 วันที่</label>
+            <label style={S.label}>📅 {t('date', lang)}</label>
             <DatePicker value={dDate} onChange={setDDate} />
           </div>
 
@@ -478,14 +483,14 @@ export default function AddTransaction() {
           </div>
 
           <div style={S.group}>
-            <label style={S.label}>💰 จำนวนเงิน (บาท)</label>
+            <label style={S.label}>💰 {t('amount', lang)}</label>
             <input type="number" value={dAmount} onChange={e => setDAmount(e.target.value)}
               placeholder="0" inputMode="decimal"
               style={{ ...S.input, borderColor: errors.amount ? '#D85A30' : '#e0e0d8', fontSize: 18, fontWeight: 600 }} />
             {errors.amount && <div style={S.err}>{errors.amount}</div>}
           </div>
           <div style={S.group}>
-            <label style={S.label}>📝 รายละเอียด (ไม่บังคับ)</label>
+            <label style={S.label}>📝 {t('noteOptional', lang)}</label>
             <input type="text" value={dNote} onChange={e => setDNote(e.target.value)}
               placeholder="เช่น ค่าของที่ซื้อแทน" style={S.input} />
           </div>
@@ -502,7 +507,7 @@ export default function AddTransaction() {
         </div>
         <div style={S.footer}>
           <button onClick={handleSaveDirect} onTouchEnd={e => { e.preventDefault(); if(!saving) handleSaveDirect() }} style={saving ? S.btnDis : S.btnOrg} disabled={saving}>
-            {saving ? 'กำลังบันทึก...' : '💸 บันทึกหนี้'}
+            {saving ? 'กำลังบันทึก...' : t('saveDebt', lang)}
           </button>
         </div>
       </>}
