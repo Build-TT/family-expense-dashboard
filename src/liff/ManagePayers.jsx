@@ -58,24 +58,24 @@ export default function ManagePayers() {
   const cancelEdit = ()  => setEditId(null)
 
   const handleEdit = async (id) => {
-    if (!editName.trim()) { showToast('กรุณาใส่ชื่อสมาชิก'); return }
+    if (!editName.trim()) { showToast(lang==='en'?'Please enter member name':'กรุณาใส่ชื่อสมาชิก'); return }
     setSaving(true)
     try {
       const data = await sendToGAS({ action: 'editMember', id, name: editName.trim() })
       if (data.status === 'ok') { showToast(lang==='en'?'✅ Updated!':'✅ แก้ไขเรียบร้อยแล้ว'); setEditId(null); load() }
-      else showToast('❌ ' + (data.message || 'เกิดข้อผิดพลาด'))
-    } catch { showToast('❌ เชื่อมต่อไม่ได้') }
+      else showToast('❌ ' + (data.message || lang==='en'?'Error':'เกิดข้อผิดพลาด'))
+    } catch { showToast(lang==='en'?'❌ Connection error':'❌ เชื่อมต่อไม่ได้') }
     setSaving(false)
   }
 
   const handleAdd = async () => {
-    if (!newName.trim()) { showToast('กรุณาใส่ชื่อสมาชิก'); return }
+    if (!newName.trim()) { showToast(lang==='en'?'Please enter member name':'กรุณาใส่ชื่อสมาชิก'); return }
     setSaving(true)
     try {
       const data = await sendToGAS({ action: 'addMember', name: newName.trim() })
-      if (data.status === 'ok') { showToast('✅ เพิ่มเรียบร้อยแล้ว'); setNewName(''); load() }
-      else showToast('❌ ' + (data.message || 'เกิดข้อผิดพลาด'))
-    } catch { showToast('❌ เชื่อมต่อไม่ได้') }
+      if (data.status === 'ok') { showToast(lang==='en'?'✅ Added!':'✅ เพิ่มเรียบร้อยแล้ว'); setNewName(''); load() }
+      else showToast('❌ ' + (data.message || lang==='en'?'Error':'เกิดข้อผิดพลาด'))
+    } catch { showToast(lang==='en'?'❌ Connection error':'❌ เชื่อมต่อไม่ได้') }
     setSaving(false)
   }
 
@@ -84,8 +84,8 @@ export default function ManagePayers() {
     try {
       const data = await sendToGAS({ action: 'removeMember', id })
       if (data.status === 'ok') { showToast(lang==='en'?'✅ Deleted!':'✅ ลบเรียบร้อยแล้ว'); load() }
-      else showToast('❌ ' + (data.message || 'เกิดข้อผิดพลาด'))
-    } catch { showToast('❌ เชื่อมต่อไม่ได้') }
+      else showToast('❌ ' + (data.message || lang==='en'?'Error':'เกิดข้อผิดพลาด'))
+    } catch { showToast(lang==='en'?'❌ Connection error':'❌ เชื่อมต่อไม่ได้') }
   }
 
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>{lang==='en'?'Loading...':'กำลังโหลด...'}</div>
@@ -128,11 +128,11 @@ export default function ManagePayers() {
         <div style={S.group}>
           <label style={S.label}>{lang==='en'?'Member Name':'ชื่อสมาชิก'}</label>
           <input value={newName} onChange={e => setNewName(e.target.value)}
-            placeholder="เช่น Oy, Build" style={S.input}
+            placeholder={lang==='en'?'e.g. Oy, Build':'เช่น Oy, Build'} style={S.input}
             onKeyDown={e => e.key === 'Enter' && handleAdd()} />
         </div>
         <button onClick={handleAdd} style={S.btnAdd} disabled={saving}>
-          {saving ? 'กำลังเพิ่ม...' : '+ เพิ่มสมาชิก'}
+          {saving ? (lang==='en'?'Adding...':'กำลังเพิ่ม...') : (lang==='en'?'+ Add Member':'+ เพิ่มสมาชิก')}
         </button>
       </div>
     <BottomNav />
