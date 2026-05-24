@@ -222,7 +222,7 @@ function SettlementStatus({ settlement, monthKey, onSettle, lang }) {
             {isSettled ? lang==='en'?'✅ Settled':'✅ เคลียบิลแล้ว' : lang==='en'?'⏳ Pending':'⏳ ยังไม่ได้เคลียบิล'}
           </div>
           {settlement.settledAt && (
-            <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>เคลียเมื่อ {settlement.settledAt.toString().substring(0, 10)}</div>
+            <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{lang==='en'?'Settled at ':'เคลียเมื่อ '}{settlement.settledAt.toString().substring(0, 10)}</div>
           )}
         </div>
         {!isSettled && settlement.amount > 0 && (
@@ -382,7 +382,7 @@ export default function App() {
         </div>
       )}
 
-      {loading && <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>กำลังโหลดข้อมูล...</div>}
+      {loading && <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>{lang==='en'?'Loading...':'กำลังโหลดข้อมูล...'}</div>}
 
       {!loading && !error && <>
 
@@ -396,7 +396,7 @@ export default function App() {
         </div>
 
         {/* SETTLEMENT + STATUS */}
-        <Section title="เปรียบเทียบรายจ่าย">
+        <Section title={lang==='en'?'Expense Comparison':'เปรียบเทียบรายจ่าย'}>
           <SettlementBar balances={balances} settlements={settlements} lang={lang} />
           <SettlementStatus
             settlement={useMonthSheet ? settlement : null}
@@ -409,7 +409,7 @@ export default function App() {
         {/* CHARTS */}
         {catData.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 12 }}>
-            <Section title="รายจ่ายตามหมวดหมู่">
+            <Section title={lang==='en'?'By Category':'รายจ่ายตามหมวดหมู่'}>
               <ResponsiveContainer width="100%" height={180}>
                 <PieChart>
                   <Pie data={catData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={38}>
@@ -430,7 +430,7 @@ export default function App() {
               </div>
             </Section>
 
-            <Section title="รายจ่ายแต่ละคน">
+            <Section title={lang==='en'?'By Person':'รายจ่ายแต่ละคน'}>
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={balances} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <XAxis dataKey="name" tick={{ fontSize: 13 }} />
@@ -441,14 +441,14 @@ export default function App() {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-              <div style={{ marginTop: 6, fontSize: 12, color: '#888', textAlign: 'center' }}>เฉลี่ย {fmt(perPerson)} / คน</div>
+              <div style={{ marginTop: 6, fontSize: 12, color: '#888', textAlign: 'center' }}>{lang==='en'?`Avg ${fmt(perPerson)} / person`:`เฉลี่ย ${fmt(perPerson)} / คน`}</div>
             </Section>
           </div>
         )}
 
         {/* วิธีชำระ */}
         {Object.keys(byPay).length > 0 && (
-          <Section title="รายจ่ายตามวิธีชำระ">
+          <Section title={lang==='en'?'By Payment Method':'รายจ่ายตามวิธีชำระ'}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
               {Object.entries(byPay).sort((a, b) => b[1].total - a[1].total).map(([key, data]) => {
                 const ownerIdx = memberNames.indexOf(data.owner)
