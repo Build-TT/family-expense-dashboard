@@ -539,7 +539,8 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
   const [searchQ,  setSearchQ]    = useState('')
   const [editingTx, setEditingTx] = useState(null)
   const [editForm, setEditForm]   = useState({})
-  const [saving, setSaving]       = useState(false)
+  const [saving,   setSaving]   = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const pmOptions = [...new Set(expenses.map(tx => tx.payment_id || '').filter(Boolean))]
 
@@ -571,7 +572,7 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
 
   const handleDelete = async (tx) => {
     if (!confirm(lang === 'th' ? 'ลบรายการนี้?' : 'Delete this transaction?')) return
-    setSaving(true)
+    setDeleting(true)
     try {
       const params = new URLSearchParams({
         action:     'deleteTransaction',
@@ -583,7 +584,7 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
       if (data.status === 'ok') { setEditingTx(null); onReload() }
       else alert('Error: ' + (data.message || 'Unknown'))
     } catch (e) { alert('Connection error') }
-    setSaving(false)
+    setDeleting(false)
   }
 
   const handleSaveEdit = async () => {
@@ -703,12 +704,12 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
                 style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid #ddd', background: '#fff', fontSize: 14, cursor: 'pointer' }}>
                 {lang === 'th' ? 'ยกเลิก' : 'Cancel'}
               </button>
-              <button onClick={() => handleDelete(editingTx)} disabled={saving}
-                style={{ flex: 1, padding: 12, borderRadius: 10, border: 'none', background: '#D85A30', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-                🗑
+              <button onClick={() => handleDelete(editingTx)} disabled={deleting || saving}
+                style={{ flex: 1, padding: 12, borderRadius: 10, border: 'none', background: '#D85A30', color: '#fff', fontSize: 14, fontWeight: 700, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1 }}>
+                {deleting ? '...' : '🗑'}
               </button>
-              <button onClick={handleSaveEdit} disabled={saving}
-                style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: '#1D9E75', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+              <button onClick={handleSaveEdit} disabled={saving || deleting}
+                style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: '#1D9E75', color: '#fff', fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
                 {saving ? '...' : (lang === 'th' ? '✅ บันทึก' : '✅ Save')}
               </button>
             </div>
