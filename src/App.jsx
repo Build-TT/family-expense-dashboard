@@ -223,7 +223,7 @@ function SettlementStatus({ settlement, monthKey, onSettle, lang }) {
             {isSettled ? lang==='en'?'✅ Settled':'✅ เคลียบิลแล้ว' : lang==='en'?'⏳ Pending':'⏳ ยังไม่ได้เคลียบิล'}
           </div>
           {settlement.settledAt && (
-            <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>เคลียเมื่อ {settlement.settledAt.toString().substring(0, 10)}</div>
+            <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{lang==='en'?'Settled at ':' เคลียเมื่อ '}{settlement.settledAt.toString().substring(0, 10)}</div>
           )}
         </div>
         {!isSettled && settlement.amount > 0 && (
@@ -383,7 +383,7 @@ export default function App() {
         </div>
       )}
 
-      {loading && <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>กำลังโหลดข้อมูล...</div>}
+      {loading && <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>{lang==='en'?'Loading...':'กำลังโหลดข้อมูล...'}</div>}
 
       {!loading && !error && <>
 
@@ -397,7 +397,7 @@ export default function App() {
         </div>
 
         {/* SETTLEMENT + STATUS */}
-        <Section title="เปรียบเทียบรายจ่าย">
+        <Section title={lang==='en'?'Expense Comparison':'เปรียบเทียบรายจ่าย'}>
           <SettlementBar balances={balances} settlements={settlements} lang={lang} />
           <SettlementStatus
             settlement={useMonthSheet ? settlement : null}
@@ -410,7 +410,7 @@ export default function App() {
         {/* CHARTS */}
         {catData.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 12 }}>
-            <Section title="รายจ่ายตามหมวดหมู่">
+            <Section title={lang==='en'?'By Category':'รายจ่ายตามหมวดหมู่'}>
               <ResponsiveContainer width="100%" height={180}>
                 <PieChart>
                   <Pie data={catData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={38}>
@@ -431,7 +431,7 @@ export default function App() {
               </div>
             </Section>
 
-            <Section title="รายจ่ายแต่ละคน">
+            <Section title={lang==='en'?'By Person':'รายจ่ายแต่ละคน'}>
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={balances} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <XAxis dataKey="name" tick={{ fontSize: 13 }} />
@@ -442,14 +442,14 @@ export default function App() {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-              <div style={{ marginTop: 6, fontSize: 12, color: '#888', textAlign: 'center' }}>เฉลี่ย {fmt(perPerson)} / คน</div>
+              <div style={{ marginTop: 6, fontSize: 12, color: '#888', textAlign: 'center' }}>{lang==='en'?`Avg ${fmt(perPerson)} / person`:`เฉลี่ย ${fmt(perPerson)} / คน`}</div>
             </Section>
           </div>
         )}
 
         {/* วิธีชำระ */}
         {Object.keys(byPay).length > 0 && (
-          <Section title="รายจ่ายตามวิธีชำระ">
+          <Section title={lang==='en'?'By Payment Method':'รายจ่ายตามวิธีชำระ'}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
               {Object.entries(byPay).sort((a, b) => b[1].total - a[1].total).map(([key, data]) => {
                 const ownerIdx = memberNames.indexOf(data.owner)
@@ -458,7 +458,7 @@ export default function App() {
                   <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{ width: 120, minWidth: 120, flexShrink: 0 }}>
                       <div style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.dispName}</div>
-                      <div style={{ fontSize: 11, color: barColor, fontWeight: 600 }}>{data.owner || 'ไม่ระบุ'}</div>
+                      <div style={{ fontSize: 11, color: barColor, fontWeight: 600 }}>{data.owner || (lang==='en'?'N/A':'ไม่ระบุ')}</div>
                     </div>
                     <div style={{ flex: 1, background: '#f0f0ec', borderRadius: 4, height: 8, overflow: 'hidden' }}>
                       <div style={{ height: '100%', background: barColor, borderRadius: 4, width: expenseTotal > 0 ? Math.round(data.total / expenseTotal * 100) + '%' : '0%' }} />
@@ -470,7 +470,7 @@ export default function App() {
               })}
             </div>
             <div style={{ borderTop: '1px solid #f0f0ec', paddingTop: 12 }}>
-              <div style={{ fontSize: 12, color: '#888', marginBottom: 8, fontWeight: 600 }}>สรุปตามเจ้าของบัตร</div>
+              <div style={{ fontSize: 12, color: '#888', marginBottom: 8, fontWeight: 600 }}>{lang==='en'?'By Card Owner':'สรุปตามเจ้าของบัตร'}</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {memberNames.map((m, i) => (
                   <div key={m} style={{ flex: 1, minWidth: 100, background: '#f8f8f5', borderRadius: 8, padding: '10px 14px', borderLeft: `3px solid ${MEMBER_COLORS[i % MEMBER_COLORS.length]}` }}>
