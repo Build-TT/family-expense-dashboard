@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { fetchSheet, sendToGAS, todayISO, GAS_URL, initLiff } from './utils'
+import LangToggle from '../components/LangToggle.jsx'
+import { getLang } from '../i18n'
 
 const S = {
   wrap:    { maxWidth: 480, margin: '0 auto', padding: '0 0 130px', fontFamily: 'system-ui,sans-serif' },
@@ -144,13 +146,17 @@ export default function AddTransaction() {
   const [payments,   setPayments]   = useState([])
   const [loading,    setLoading]    = useState(true)
   const [saving,     setSaving]     = useState(false)
-  const [checking,   setChecking]   = useState(false)
   const [toast,      setToast]      = useState('')
   const [errors,     setErrors]     = useState({})
   const [dupItems,   setDupItems]   = useState([])
   const [showPay,    setShowPay]    = useState(false)
 
   useEffect(() => { initLiff('add') }, [])
+  useEffect(() => {
+    const h = () => setLang(getLang())
+    window.addEventListener('langchange', h)
+    return () => window.removeEventListener('langchange', h)
+  }, [])
 
   useEffect(() => {
     // ดึงข้อมูลผ่าน GAS เพื่อรองรับ LIFF WebView ที่บล็อก Google Sheets API โดยตรง
@@ -210,7 +216,6 @@ export default function AddTransaction() {
     if (!validate()) return
 
     // ตรวจสอบรายการซ้ำ — เช็ค date + amount + payment_id
-    setChecking(true)
     try {
       const pm = payments.find(p => p.id === paymentId)
       const pmLabel = pm ? `${pm.name}${pm.last4 ? ' ···' + pm.last4 : ''} (${pm.owner})` : ''
@@ -226,11 +231,9 @@ export default function AddTransaction() {
       const checkData = await checkRes.json()
       if (checkData.status === 'found' && checkData.items && checkData.items.length > 0) {
         setDupItems(checkData.items)
-        setChecking(false)
         return
       }
     } catch (e) { console.warn('dup check error', e) }
-    setChecking(false)
 
     setSaving(true)
     try {
@@ -332,8 +335,9 @@ export default function AddTransaction() {
 
       {/* ===== TAB: EXPENSE ===== */}
       {tab === 'expense' && <>
-        <div style={{ ...S.header, background: '#1D9E75' }}>
+        <div style={{ ...S.header, background: '#1D9E75', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <div style={S.htitle}>➕ เพิ่มรายจ่าย</div>
+          <LangToggle />
           <div style={S.hsub}>กรอกข้อมูลแล้วกด Save</div>
         </div>
         <div style={S.body}>
@@ -420,16 +424,17 @@ export default function AddTransaction() {
           </div>
         </div>
         <div style={S.footer}>
-          <button onClick={handleSaveExpense} onTouchEnd={e => { e.preventDefault(); if(!saving && !checking) handleSaveExpense() }} style={(saving||checking) ? S.btnDis : S.btnSave} disabled={saving||checking}>
-            {checking ? '⏳ กำลังตรวจสอบ...' : saving ? '⏳ กำลังบันทึก...' : '✅ Save'}
+          <button onClick={handleSaveExpense} onTouchEnd={e => { e.preventDefault(); if(!saving) handleSaveExpense() }} style={saving ? S.btnDis : S.btnSave} disabled={saving}>
+            {saving ? 'กำลังบันทึก...' : '✅ Save'}
           </button>
         </div>
       </>}
 
       {/* ===== TAB: DIRECT DEBT ===== */}
       {tab === 'direct' && <>
-        <div style={{ ...S.header, background: '#BA7517' }}>
+        <div style={{ ...S.header, background: '#BA7517', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <div style={S.htitle}>💸 หนี้โดยตรง</div>
+          <LangToggle />
           <div style={S.hsub}>รายการที่ไม่ต้องหาร คิดเต็มจำนวน</div>
         </div>
         <div style={S.body}>
