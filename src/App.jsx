@@ -180,7 +180,7 @@ function SettlementBar({ balances, settlements }) {
         ))}
       </div>
       {settlements.length === 0 ? (
-        <div style={{ fontSize: 14, color: '#1D9E75' }}>✓ ทุกคนจ่ายเท่ากัน ไม่ต้องชำระคืน</div>
+        <div style={{ fontSize: 14, color: '#1D9E75' }}>{lang==='en'?'✓ All equal, no settlement needed':'✓ ทุกคนจ่ายเท่ากัน ไม่ต้องชำระคืน'}</div>
       ) : settlements.map((s, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff9f7', border: '1px solid #f5c4b3', borderRadius: 10, padding: '12px 16px', marginBottom: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -204,13 +204,13 @@ function SettlementStatus({ settlement, monthKey, onSettle }) {
   const isSettled = settlement.status === 'settled'
 
   const handleSettle = async () => {
-    if (!confirm(`ยืนยันการเคลียบิลเดือน ${monthKey}?\n${settlement.from} โอน ฿${Math.round(settlement.amount).toLocaleString()} ให้ ${settlement.to}`)) return
+    if (!confirm(lang==='en'?`Confirm settlement for ${monthKey}?\n${settlement.from} pays ฿${Math.round(settlement.amount).toLocaleString()} to ${settlement.to}`:`ยืนยันการเคลียบิลเดือน ${monthKey}?\n${settlement.from} โอน ฿${Math.round(settlement.amount).toLocaleString()} ให้ ${settlement.to}`)) return
     setLoading(true)
     try {
       const res = await sendToGAS({ action: 'markSettled', month: monthKey })
       if (res.status === 'ok') onSettle()
       else alert('เกิดข้อผิดพลาด: ' + res.message)
-    } catch { alert('เชื่อมต่อไม่ได้') }
+    } catch { alert(lang==='en'?'Connection error':'เชื่อมต่อไม่ได้') }
     setLoading(false)
   }
 
@@ -219,7 +219,7 @@ function SettlementStatus({ settlement, monthKey, onSettle }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, color: isSettled ? '#1D9E75' : '#D85A30' }}>
-            {isSettled ? '✅ เคลียบิลแล้ว' : '⏳ ยังไม่ได้เคลียบิล'}
+            {isSettled ? lang==='en'?'✅ Settled':'✅ เคลียบิลแล้ว' : lang==='en'?'⏳ Pending':'⏳ ยังไม่ได้เคลียบิล'}
           </div>
           {settlement.settledAt && (
             <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>เคลียเมื่อ {settlement.settledAt.toString().substring(0, 10)}</div>
@@ -230,7 +230,7 @@ function SettlementStatus({ settlement, monthKey, onSettle }) {
             padding: '8px 16px', borderRadius: 8, border: 'none',
             background: '#1D9E75', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer'
           }}>
-            {loading ? 'กำลังบันทึก...' : `✅ Mark เคลีย ฿${Math.round(settlement.amount).toLocaleString()}`}
+            {loading ? 'กำลังบันทึก...' : lang==='en'?`✅ Mark Settled ฿${Math.round(settlement.amount).toLocaleString()}`:`✅ Mark เคลีย ฿${Math.round(settlement.amount).toLocaleString()}`}
           </button>
         )}
       </div>
@@ -388,11 +388,11 @@ export default function App() {
 
         {/* METRICS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 12 }}>
-          <Metric label="รายรับรวม"   value={fmt(income)}      color="#1D9E75" />
-          <Metric label="รายจ่ายรวม"  value={fmt(expenseTotal)} color="#D85A30" />
-          {directTotal > 0 && <Metric label="หนี้โดยตรง" value={fmt(directTotal)} color="#BA7517" />}
-          <Metric label="เฉลี่ย/คน"   value={fmt(perPerson)} />
-          <Metric label="รายการ"       value={expenses.length + ' รายการ'} />
+          <Metric label={lang==='en'?'Total Income':'รายรับรวม'}   value={fmt(income)}      color="#1D9E75" />
+          <Metric label={lang==='en'?'Total Expense':'รายจ่ายรวม'}  value={fmt(expenseTotal)} color="#D85A30" />
+          {directTotal > 0 && <Metric label={lang==='en'?'Direct Debt':'หนี้โดยตรง'} value={fmt(directTotal)} color="#BA7517" />}
+          <Metric label={lang==='en'?'Avg/Person':'เฉลี่ย/คน'}   value={fmt(perPerson)} />
+          <Metric label={lang==='en'?'Items':'รายการ'}       value={expenses.length + (lang==='en'?' items':' รายการ')} />
         </div>
 
         {/* SETTLEMENT + STATUS */}
@@ -497,7 +497,7 @@ export default function App() {
 
         {/* DIRECT DEBT */}
         {directs.length > 0 && (
-          <Section title={`หนี้โดยตรง (${directs.length} รายการ)`}>
+          <Section title={lang==='en'?`Direct Debt (${directs.length} items)`:`หนี้โดยตรง (${directs.length} รายการ)`}>
             {directs.map((t, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #f5f5f0' }}>
                 <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: '#fff4e6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>💸</div>
@@ -571,7 +571,7 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
   }
 
   const handleDelete = async (tx) => {
-    if (!confirm(lang === 'th' ? 'ลบรายการนี้?' : 'Delete this transaction?')) return
+    if (!confirm(lang === 'th' ? lang==='en'?'Delete this transaction?':'ลบรายการนี้?' : 'Delete this transaction?')) return
     setDeleting(true)
     try {
       const params = new URLSearchParams({
@@ -719,7 +719,7 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
 
       {/* LIST */}
       {filtered.length === 0
-        ? <div style={{ fontSize: 14, color: '#888' }}>{lang === 'th' ? 'ยังไม่มีรายการ' : 'No transactions'}</div>
+        ? <div style={{ fontSize: 14, color: '#888' }}>{lang === 'th' ? lang==='en'?'No transactions':'ยังไม่มีรายการ' : 'No transactions'}</div>
         : filtered.map((tx, i) => {
             const pmLabel    = tx.payment_id || ''
             const pmOwner    = resolveOwnerFromLabel(pmLabel, tx.payer)
