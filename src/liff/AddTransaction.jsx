@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { fetchSheet, sendToGAS, todayISO, GAS_URL } from './utils'
+import { fetchSheet, sendToGAS, todayISO, GAS_URL, initLiff } from './utils'
 
 const S = {
   wrap:    { maxWidth: 480, margin: '0 auto', padding: '0 0 130px', fontFamily: 'system-ui,sans-serif' },
@@ -147,6 +147,8 @@ export default function AddTransaction() {
   const [toast,      setToast]      = useState('')
   const [errors,     setErrors]     = useState({})
 
+  useEffect(() => { initLiff('add') }, [])
+
   useEffect(() => {
     // ดึงข้อมูลผ่าน GAS เพื่อรองรับ LIFF WebView ที่บล็อก Google Sheets API โดยตรง
     const sortByOrder = (arr) => [...arr].sort((a, b) => (parseInt(a.order) || 999) - (parseInt(b.order) || 999))
@@ -208,6 +210,21 @@ export default function AddTransaction() {
 
   const handleSaveExpense = async () => {
     if (!validate()) return
+
+    // ตรวจสอบรายการซ้ำ — เช็ค date + amount + paymentId
+    try {
+      const pm = payments.find(p => p.id === paymentId)
+      const pmLabel = pm ? `${pm.name}${pm.last4 ? ` ···${pm.last4}` : ''} (${pm.owner})` : ''
+      const mm = date.substring(5,7), yyyy = date.substring(0,4)
+      const monthKey = `${mm}-${yyyy}`
+      const checkRes = await fetch(`${GAS_URL}?action=checkDuplicate&date=${encodeURIComponent(date)}&amount=${encodeURIComponent(amount)}&payment_id=${encodeURIComponent(pmLabel)}&month=${monthKey}`)
+      const checkData = await checkRes.json()
+      if (checkData.status === 'found' && checkData.items && checkData.items.length > 0) {
+        setDupItems(checkData.items)
+        return
+      }
+    } catch (e) { console.warn('dup check error', e) }
+
     setSaving(true)
     try {
       const data = await sendToGAS({
@@ -247,8 +264,51 @@ export default function AddTransaction() {
 
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>กำลังโหลด...</div>
 
+  const confirmSave = async () => {
+    setDupItems([])
+    setSaving(true)
+    try {
+      const data = await sendToGAS({
+        action: 'addTransaction', date, name: name.trim(),
+        category, type: 'expense', amount: parseFloat(amount),
+        payer, paymentId, note: note.trim()
+      })
+      if (data.status === 'ok') {
+        setToast(lang === 'th' ? '✅ บันทึกแล้ว!' : '✅ Saved!')
+        setTimeout(() => { setName(''); setAmount(''); setCategory(''); setPayer(''); setPaymentId(''); setNote('') }, 1200)
+      } else { setToast('❌ ' + (data.message || 'Error')) }
+    } catch(e) { setToast('❌ ' + e.message) }
+    setSaving(false)
+  }
+
   return (
     <div style={S.wrap}>
+
+      {/* Duplicate Warning Modal */}
+      {dupItems.length > 0 && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+          <div style={{ background:'#fff', borderRadius:16, padding:20, width:'100%', maxWidth:420 }}>
+            <div style={{ fontSize:16, fontWeight:700, color:'#D85A30', marginBottom:8 }}>⚠️ พบรายการที่คล้ายกัน</div>
+            <div style={{ fontSize:13, color:'#666', marginBottom:12 }}>มีรายการที่มีวันที่ จำนวนเงิน และบัตรตรงกันอยู่แล้ว:</div>
+            {dupItems.map((item, i) => (
+              <div key={i} style={{ background:'#fff9f7', border:'1px solid #f5c4b3', borderRadius:8, padding:'10px 12px', marginBottom:8 }}>
+                <div style={{ fontWeight:600, fontSize:14 }}>{item.name}</div>
+                <div style={{ color:'#888', fontSize:12, marginTop:3 }}>{item.date} · ฿{Number(item.amount).toLocaleString()} · {item.payment_id}</div>
+              </div>
+            ))}
+            <div style={{ display:'flex', gap:10, marginTop:16 }}>
+              <label onClick={() => setDupItems([])}
+                style={{ flex:1, padding:'12px', borderRadius:10, border:'1.5px solid #e0e0d8', background:'#fff', fontSize:14, textAlign:'center', cursor:'pointer', color:'#555', fontWeight:600 }}>
+                ❌ ยกเลิก
+              </label>
+              <label onClick={confirmSave}
+                style={{ flex:1, padding:'12px', borderRadius:10, background:'#1D9E75', fontSize:14, textAlign:'center', cursor:'pointer', color:'#fff', fontWeight:700 }}>
+                ✅ ยืนยันบันทึก
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
       {toast && <div style={S.toast}>{toast}</div>}
 
       {/* TABS */}
