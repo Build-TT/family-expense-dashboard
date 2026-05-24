@@ -144,6 +144,7 @@ export default function AddTransaction() {
   const [payments,   setPayments]   = useState([])
   const [loading,    setLoading]    = useState(true)
   const [saving,     setSaving]     = useState(false)
+  const [checking,   setChecking]   = useState(false)
   const [toast,      setToast]      = useState('')
   const [errors,     setErrors]     = useState({})
   const [dupItems,   setDupItems]   = useState([])
@@ -209,6 +210,7 @@ export default function AddTransaction() {
     if (!validate()) return
 
     // ตรวจสอบรายการซ้ำ — เช็ค date + amount + payment_id
+    setChecking(true)
     try {
       const pm = payments.find(p => p.id === paymentId)
       const pmLabel = pm ? `${pm.name}${pm.last4 ? ' ···' + pm.last4 : ''} (${pm.owner})` : ''
@@ -224,9 +226,11 @@ export default function AddTransaction() {
       const checkData = await checkRes.json()
       if (checkData.status === 'found' && checkData.items && checkData.items.length > 0) {
         setDupItems(checkData.items)
+        setChecking(false)
         return
       }
     } catch (e) { console.warn('dup check error', e) }
+    setChecking(false)
 
     setSaving(true)
     try {
@@ -416,8 +420,8 @@ export default function AddTransaction() {
           </div>
         </div>
         <div style={S.footer}>
-          <button onClick={handleSaveExpense} onTouchEnd={e => { e.preventDefault(); if(!saving) handleSaveExpense() }} style={saving ? S.btnDis : S.btnSave} disabled={saving}>
-            {saving ? 'กำลังบันทึก...' : '✅ Save'}
+          <button onClick={handleSaveExpense} onTouchEnd={e => { e.preventDefault(); if(!saving && !checking) handleSaveExpense() }} style={(saving||checking) ? S.btnDis : S.btnSave} disabled={saving||checking}>
+            {checking ? '⏳ กำลังตรวจสอบ...' : saving ? '⏳ กำลังบันทึก...' : '✅ Save'}
           </button>
         </div>
       </>}
