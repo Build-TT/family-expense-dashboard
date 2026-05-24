@@ -138,7 +138,7 @@ function computeSettlement(transactions, members) {
 // ============================================================
 //  SETTLEMENT BAR
 // ============================================================
-function SettlementBar({ balances, settlements }) {
+function SettlementBar({ balances, settlements, lang }) {
   const grandTotal = balances.reduce((s, b) => s + b.paid, 0) || 1
   return (
     <div>
@@ -198,7 +198,7 @@ function SettlementBar({ balances, settlements }) {
 // ============================================================
 //  SETTLEMENT STATUS BOX
 // ============================================================
-function SettlementStatus({ settlement, monthKey, onSettle }) {
+function SettlementStatus({ settlement, monthKey, onSettle, lang }) {
   const [loading, setLoading] = useState(false)
   if (!settlement) return null
   const isSettled = settlement.status === 'settled'
@@ -397,11 +397,12 @@ export default function App() {
 
         {/* SETTLEMENT + STATUS */}
         <Section title="เปรียบเทียบรายจ่าย">
-          <SettlementBar balances={balances} settlements={settlements} />
+          <SettlementBar balances={balances} settlements={settlements} lang={lang} />
           <SettlementStatus
             settlement={useMonthSheet ? settlement : null}
             monthKey={monthKey}
             onSettle={load}
+            lang={lang}
           />
         </Section>
 
@@ -571,7 +572,7 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
   }
 
   const handleDelete = async (tx) => {
-    if (!confirm(lang === 'th' ? lang==='en'?'Delete this transaction?':'ลบรายการนี้?' : 'Delete this transaction?')) return
+    if (!confirm(lang==='en'?'Delete this transaction?':'ลบรายการนี้?')) return
     setDeleting(true)
     try {
       const params = new URLSearchParams({
@@ -719,7 +720,7 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
 
       {/* LIST */}
       {filtered.length === 0
-        ? <div style={{ fontSize: 14, color: '#888' }}>{lang === 'th' ? lang==='en'?'No transactions':'ยังไม่มีรายการ' : 'No transactions'}</div>
+        ? <div style={{ fontSize: 14, color: '#888' }}>{lang==='en'?'No transactions':'ยังไม่มีรายการ'}</div>
         : filtered.map((tx, i) => {
             const pmLabel    = tx.payment_id || ''
             const pmOwner    = resolveOwnerFromLabel(pmLabel, tx.payer)
