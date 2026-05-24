@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { fetchSheet, sendToGAS } from './utils'
 import BottomNav from '../components/BottomNav.jsx'
+import LangToggle from '../components/LangToggle.jsx'
+import { getLang } from '../i18n'
 
 const S = {
   wrap:    { maxWidth: 480, margin: '0 auto', padding: '0 0 80px', fontFamily: 'system-ui,sans-serif' },
@@ -28,6 +30,7 @@ const S = {
 
 export default function ManagePayers() {
   const [members,  setMembers]  = useState([])
+  const [lang, setLang] = useState(getLang())
   const [loading,  setLoading]  = useState(true)
   const [toast,    setToast]    = useState('')
   const [newName,  setNewName]  = useState('')
@@ -42,6 +45,12 @@ export default function ManagePayers() {
       setLoading(false)
     })
   }
+  useEffect(() => {
+    const h = () => setLang(getLang())
+    window.addEventListener('langchange', h)
+    return () => window.removeEventListener('langchange', h)
+  }, [])
+
   useEffect(() => { load() }, [])
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500) }
@@ -84,7 +93,7 @@ export default function ManagePayers() {
   return (
     <div style={S.wrap}>
       {toast && <div style={S.toast}>{toast}</div>}
-      <div style={S.header}><div style={S.htitle}>👤 จัดการผู้จ่าย</div></div>
+      <div style={{ ...S.header, display:'flex', justifyContent:'space-between', alignItems:'center' }}><div style={S.htitle}>👤 จัดการผู้จ่าย</div><LangToggle /></div>
       <div style={S.body}>
         <div style={S.note}>⚠️ การลบสมาชิกจะไม่ลบรายการที่บันทึกไปแล้ว</div>
         <div style={S.section}>สมาชิกปัจจุบัน ({members.length})</div>
