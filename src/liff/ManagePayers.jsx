@@ -88,7 +88,7 @@ export default function ManagePayers() {
     } catch { showToast('❌ เชื่อมต่อไม่ได้') }
   }
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>กำลังโหลด...</div>
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>{lang==='en'?'Loading...':'กำลังโหลด...'}</div>
 
   return (
     <div style={S.wrap}>
@@ -98,7 +98,7 @@ export default function ManagePayers() {
         <div style={S.note}>{lang==='en'?'⚠️ Removing member will not delete existing records':'⚠️ การลบสมาชิกจะไม่ลบรายการที่บันทึกไปแล้ว'}</div>
         <div style={S.section}>{lang==='en'?`Members (${members.length})`:`สมาชิกปัจจุบัน (${members.length})`}</div>
         {members.length === 0
-          ? <div style={{ color: '#aaa', fontSize: 14 }}>ยังไม่มีสมาชิก</div>
+          ? <div style={{ color: '#aaa', fontSize: 14 }}>{lang==='en'?'No members yet':'ยังไม่มีสมาชิก'}</div>
           : members.map(m => (
             <div key={m.id} style={S.card}>
               <div style={S.cardRow}>
@@ -110,13 +110,13 @@ export default function ManagePayers() {
               {editId === m.id && (
                 <div style={S.editBox}>
                   <div style={S.group}>
-                    <label style={S.label}>ชื่อใหม่</label>
+                    <label style={S.label}>{lang==='en'?'New Name':'ชื่อใหม่'}</label>
                     <input value={editName} onChange={e => setEditName(e.target.value)}
                       style={S.input} onKeyDown={e => e.key === 'Enter' && handleEdit(m.id)} />
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={cancelEdit} style={S.btnCan}>ยกเลิก</button>
-                    <button onClick={() => handleEdit(m.id)} style={S.btnSave} disabled={saving}>บันทึก</button>
+                    <button onClick={cancelEdit} style={S.btnCan}>{lang==='en'?'Cancel':'ยกเลิก'}</button>
+                    <button onClick={() => handleEdit(m.id)} style={S.btnSave} disabled={saving}>{lang==='en'?'Save':'บันทึก'}</button>
                   </div>
                 </div>
               )}
@@ -124,9 +124,9 @@ export default function ManagePayers() {
           ))
         }
         <div style={S.divider} />
-        <div style={S.section}>เพิ่มสมาชิกใหม่</div>
+        <div style={S.section}>{lang==='en'?'Add New Member':'เพิ่มสมาชิกใหม่'}</div>
         <div style={S.group}>
-          <label style={S.label}>ชื่อสมาชิก</label>
+          <label style={S.label}>{lang==='en'?'Member Name':'ชื่อสมาชิก'}</label>
           <input value={newName} onChange={e => setNewName(e.target.value)}
             placeholder="เช่น Oy, Build" style={S.input}
             onKeyDown={e => e.key === 'Enter' && handleAdd()} />
