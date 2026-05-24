@@ -11,18 +11,31 @@ export const LIFF_IDS = {
 
 const BASE = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values`
 
+// โหลด LIFF SDK แบบ dynamic — เฉพาะเมื่อเรียก initLiff
+// ไม่ redirect login เมื่อเปิดใน browser ปกติ
 export async function initLiff(pageKey) {
   try {
-    if (typeof liff === 'undefined') return // ไม่มี SDK ข้ามไป
+    // โหลด SDK เฉพาะเมื่อยังไม่มี
+    if (typeof liff === 'undefined') {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js'
+        script.charset = 'utf-8'
+        script.onload = resolve
+        script.onerror = reject
+        document.head.appendChild(script)
+      })
+    }
     const liffId = LIFF_IDS[pageKey]
     if (!liffId) return
     await liff.init({ liffId })
-    if (!liff.isInClient() && !liff.isLoggedIn()) {
+    // login เฉพาะเมื่ออยู่ใน Line app และยังไม่ login
+    if (liff.isInClient() && !liff.isLoggedIn()) {
       liff.login()
     }
   } catch (e) {
-    console.warn('LIFF init error:', e)
-    // ไม่ crash — ยังใช้งานได้ใน browser ปกติ
+    console.warn('LIFF init skipped:', e.message)
+    // ไม่ crash — ใช้งานได้ใน browser ปกติ
   }
 }
 
