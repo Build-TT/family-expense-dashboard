@@ -211,13 +211,11 @@ export default function AddTransaction() {
   const handleSaveExpense = async () => {
     if (!validate()) return
 
-    // ตรวจสอบรายการซ้ำ — เช็ค date + amount + paymentId
+    // ตรวจสอบรายการซ้ำ — เช็ค date + amount (fuzzy match ไม่ขึ้นกับ format payment)
     try {
-      const pm = payments.find(p => p.id === paymentId)
-      const pmLabel = pm ? `${pm.name}${pm.last4 ? ` ···${pm.last4}` : ''} (${pm.owner})` : ''
       const mm = date.substring(5,7), yyyy = date.substring(0,4)
       const monthKey = `${mm}-${yyyy}`
-      const checkRes = await fetch(`${GAS_URL}?action=checkDuplicate&date=${encodeURIComponent(date)}&amount=${encodeURIComponent(amount)}&payment_id=${encodeURIComponent(pmLabel)}&month=${monthKey}`)
+      const checkRes = await fetch(`${GAS_URL}?action=checkDuplicate&date=${encodeURIComponent(date)}&amount=${encodeURIComponent(amount)}&month=${monthKey}`)
       const checkData = await checkRes.json()
       if (checkData.status === 'found' && checkData.items && checkData.items.length > 0) {
         setDupItems(checkData.items)
