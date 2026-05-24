@@ -535,6 +535,7 @@ function normalizeCreatedAt(val) {
 
 function TransactionList({ expenses, payments, categories, catIconMap, memberNames, monthKey, lang, onReload, GAS_URL }) {
   const [filterPm, setFilterPm]   = useState('all')
+  const [searchQ,  setSearchQ]    = useState('')
   const [editingTx, setEditingTx] = useState(null)
   const [editForm, setEditForm]   = useState({})
   const [saving, setSaving]       = useState(false)
@@ -547,9 +548,9 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
   })
 
   const filtered = sortByDate(
-    filterPm === 'all'
-      ? expenses
-      : expenses.filter(tx => (tx.payment_id || '') === filterPm)
+    expenses
+      .filter(tx => filterPm === 'all' || (tx.payment_id || '') === filterPm)
+      .filter(tx => !searchQ || (tx.name || '').toLowerCase().includes(searchQ.toLowerCase()))
   )
 
   const pmNameShort = (pmStr) => (pmStr || '').trim()  // แสดงชื่อพร้อมเจ้าของ
@@ -614,7 +615,22 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
   return (
     <Section title={`${lang === 'th' ? 'รายการทั้งหมด' : 'All Transactions'} (${expenses.length})`}>
 
-      {/* FILTER DROPDOWN */}
+      {/* SEARCH + FILTER */}
+      <div style={{ display:'flex', gap:8, marginBottom:12 }}>
+        <input
+          type="text"
+          value={searchQ}
+          onChange={e => setSearchQ(e.target.value)}
+          placeholder={lang === 'th' ? '🔍 ค้นหารายการ...' : '🔍 Search...'}
+          style={{ flex:1, padding:'8px 12px', borderRadius:8, border:'1px solid #e0e0d8', fontSize:14, outline:'none' }}
+        />
+        {searchQ && (
+          <button onClick={() => setSearchQ('')}
+            style={{ padding:'8px 12px', borderRadius:8, border:'1px solid #e0e0d8', background:'#fff', fontSize:13, cursor:'pointer', color:'#888' }}>
+            ✕
+          </button>
+        )}
+      </div>
       <div style={{ marginBottom: 12 }}>
         <select value={filterPm} onChange={e => setFilterPm(e.target.value)}
           style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e0e0d8', fontSize: 14, background: '#fff', cursor: 'pointer' }}>
