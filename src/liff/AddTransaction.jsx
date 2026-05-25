@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { fetchSheet, sendToGAS, todayISO, GAS_URL, initLiff } from './utils'
 import LangToggle from '../components/LangToggle.jsx'
 import { getLang, t } from '../i18n'
+import { getCache, setCache } from '../cache'
 
 const S = {
   wrap:    { maxWidth: 480, margin: '0 auto', padding: '0 0 130px', fontFamily: 'system-ui,sans-serif' },
@@ -164,27 +165,42 @@ export default function AddTransaction() {
   }, [])
 
   useEffect(() => {
-    // ดึงข้อมูลผ่าน GAS เพื่อรองรับ LIFF WebView ที่บล็อก Google Sheets API โดยตรง
     const sortByOrder = (arr) => [...arr].sort((a, b) => (parseInt(a.order) || 999) - (parseInt(b.order) || 999))
     const loadFromGAS = async () => {
+      // Serve from cache if available (5-min TTL) — instant load on repeat visits
+      const cached = getCache('add_refs')
+      if (cached) {
+        setCategories(cached.cats)
+        setMembers(cached.mems)
+        setPayments(cached.pays)
+        setLoading(false)
+        return
+      }
+
       try {
         const [catsRes, memsRes, paysRes] = await Promise.all([
           fetch(`${GAS_URL}?action=getCategories`).then(r => r.json()),
           fetch(`${GAS_URL}?action=getMembers`).then(r => r.json()),
           fetch(`${GAS_URL}?action=getPayments`).then(r => r.json()),
         ])
-        if (catsRes.status === 'ok') setCategories(sortByOrder(catsRes.data))
-        if (memsRes.status === 'ok') setMembers(sortByOrder(memsRes.data))
-        if (paysRes.status === 'ok') setPayments(sortByOrder(paysRes.data))
+        const cats = catsRes.status === 'ok' ? sortByOrder(catsRes.data) : []
+        const mems = memsRes.status === 'ok' ? sortByOrder(memsRes.data) : []
+        const pays = paysRes.status === 'ok' ? sortByOrder(paysRes.data) : []
+        if (cats.length) setCategories(cats)
+        if (mems.length) setMembers(mems)
+        if (pays.length) setPayments(pays)
+        if (cats.length && mems.length && pays.length) setCache('add_refs', { cats, mems, pays })
       } catch {
         // fallback ไป fetchSheet ถ้า GAS ไม่มี endpoint นี้
         try {
           const [cats, mems, pays] = await Promise.all([
             fetchSheet('categories'), fetchSheet('members'), fetchSheet('payment_methods')
           ])
-          setCategories(sortByOrder(cats.filter(c => c.active === 'TRUE')))
-          setMembers(sortByOrder(mems.filter(m => m.active === 'TRUE')))
-          setPayments(sortByOrder(pays.filter(p => p.active === 'TRUE' || p.active === true)))
+          const fc = sortByOrder(cats.filter(c => c.active === 'TRUE'))
+          const fm = sortByOrder(mems.filter(m => m.active === 'TRUE'))
+          const fp = sortByOrder(pays.filter(p => p.active === 'TRUE' || p.active === true))
+          setCategories(fc); setMembers(fm); setPayments(fp)
+          if (fc.length && fm.length) setCache('add_refs', { cats: fc, mems: fm, pays: fp })
         } catch {}
       }
       setLoading(false)

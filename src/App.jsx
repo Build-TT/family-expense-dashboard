@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import BottomNav from './components/BottomNav.jsx'
 import LangToggle from './components/LangToggle.jsx'
 import { getLang, t } from './i18n'
+import { getCache, setCache, bustCache } from './cache'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from 'recharts'
 
 const SHEET_ID     = import.meta.env.VITE_SHEET_ID  || 'YOUR_SPREADSHEET_ID'
@@ -262,21 +263,31 @@ export default function App() {
   const load = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      const [mems, cats, pays] = await Promise.all([
-        fetchSheet('members'), fetchSheet('categories'), fetchSheet('payment_methods')
-      ])
+      // Start month fetch immediately — it does not depend on ref data
+      const monthPromise = fetchMonthSheet(monthKey)
+
+      const refCache = getCache('dash_refs')
+      let mems, cats, pays
+      if (refCache) {
+        ;({ mems, cats, pays } = refCache)
+      } else {
+        // Fetch all 3 in parallel while monthPromise is already running
+        ;[mems, cats, pays] = await Promise.all([
+          fetchSheet('members'), fetchSheet('categories'), fetchSheet('payment_methods')
+        ])
+        setCache('dash_refs', { mems, cats, pays })
+      }
+
       setMembers(cats.length ? mems.filter(m => m.active === 'TRUE') : mems)
       setCategories(cats.filter(c => c.active === 'TRUE'))
       setPayments(pays.filter(p => p.active === 'TRUE'))
 
-      // ลองดึง Sheet เดือนก่อน
-      const monthData = await fetchMonthSheet(monthKey)
+      const monthData = await monthPromise
       if (monthData && monthData.transactions.length > 0) {
         setTransactions(monthData.transactions)
         setSettlement(monthData.settlement)
         setUseMonthSheet(true)
       } else {
-        // Fallback ไป transactions เดิม
         const txs = await fetchSheet('transactions')
         setTransactions(txs)
         setSettlement(null)
@@ -366,7 +377,7 @@ export default function App() {
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <LangToggle />
-          <button onClick={load} style={S.iconBtn} title={t('refresh', lang)}>↻</button>
+          <button onClick={() => { bustCache('dash_refs'); load() }} style={S.iconBtn} title={t('refresh', lang)}>↻</button>
         </div>
       </div>
 
