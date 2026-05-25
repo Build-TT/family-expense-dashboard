@@ -105,9 +105,9 @@ function computeSettlement(transactions, members) {
         if (paid[owner] !== undefined) paid[owner] += amt
       }
     } else if (type === 'direct') {
-      total += amt
-      if (paid[payer] !== undefined) paid[payer] += amt
-      if (paid[to]    !== undefined) paid[to]    -= amt
+      // direct debt: NOT counted in total; debtor (payer) paid less, creditor (to) paid more
+      if (paid[payer] !== undefined) paid[payer] -= amt
+      if (paid[to]    !== undefined) paid[to]    += amt
     }
   })
 
