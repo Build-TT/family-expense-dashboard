@@ -10,21 +10,25 @@ export default function LangToggle() {
     return () => window.removeEventListener('langchange', handler)
   }, [])
 
-  const toggle = () => {
-    const next = lang === LANGS.TH ? LANGS.EN : LANGS.TH
-    setLang(next)
-    setLangState(next)
+  const select = (l) => {
+    setLang(l)
+    setLangState(l)
   }
 
+  const btn = (l) => ({
+    padding: '4px 12px', border: 'none', fontSize: 13, fontWeight: 700,
+    cursor: 'pointer',
+    background: lang === l ? '#1D9E75' : '#fff',
+    color: lang === l ? '#fff' : '#aaa',
+  })
+
   return (
-    <button onClick={toggle} style={{
-      display: 'flex', alignItems: 'center', gap: 4,
-      padding: '4px 10px', borderRadius: 20,
-      border: '1px solid #e0e0d8', background: '#fff',
-      cursor: 'pointer', fontSize: 13, fontWeight: 600,
-      color: '#555'
+    <div style={{
+      display: 'inline-flex', borderRadius: 20, overflow: 'hidden',
+      border: '1px solid #e0e0d8',
     }}>
-      {lang === LANGS.TH ? '🇹🇭 TH' : '🇺🇸 EN'}
-    </button>
+      <button onClick={() => select(LANGS.TH)} style={btn(LANGS.TH)}>TH</button>
+      <button onClick={() => select(LANGS.EN)} style={btn(LANGS.EN)}>EN</button>
+    </div>
   )
 }

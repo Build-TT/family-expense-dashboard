@@ -209,8 +209,8 @@ export default function AddTransaction() {
 
   const validateDirect = () => {
     const e = {}
-    if (!dFrom)                              e.from   = lang==='en'?'Required':'กรุณาเลือกผู้เป็นหนี้'
-    if (!dTo)                                e.to     = lang==='en'?'Required':'กรุณาเลือกผู้รับเงิน'
+    if (!dFrom)                              e.from   = lang==='en'?'Required':'กรุณาเลือกลูกหนี้'
+    if (!dTo)                                e.to     = lang==='en'?'Required':'กรุณาเลือกเจ้าหนี้'
     if (dFrom && dTo && dFrom === dTo)       e.to     = 'ต้องเป็นคนละคนกัน'
     if (!dAmount || parseFloat(dAmount) <= 0) e.amount = lang==='en'?'Required':'กรุณาใส่จำนวนเงิน'
     setErrors(e)
@@ -334,7 +334,7 @@ export default function AddTransaction() {
         </button>
         <button onClick={() => { setTab('direct'); setErrors({}) }} onTouchEnd={e => { e.preventDefault(); setTab('direct'); setErrors({}) }}
           style={{ ...(tab === 'direct' ? S.tabAct : S.tab), color: tab === 'direct' ? '#BA7517' : '#999', background: 'none' }}>
-          {lang==='en'?'💸 Direct Debt':'💸 หนี้โดยตรง'}
+          {lang==='en'?'💸 Direct Debt':'💸 หนี้'}
         </button>
       </div>
 
@@ -444,7 +444,6 @@ export default function AddTransaction() {
             <div style={S.htitle}>💸 {t('addDirectDebt', lang)}</div>
             <LangToggle />
           </div>
-          <LangToggle />
           <div style={S.hsub}>{lang==='en'?'Full amount, no split':'รายการที่ไม่ต้องหาร คิดเต็มจำนวน'}</div>
         </div>
         <div style={S.body}>
@@ -458,7 +457,7 @@ export default function AddTransaction() {
             <div style={{ fontSize: 13, color: '#888', marginBottom: 10, fontWeight: 600 }}>{lang==='en'?'Who owes who?':'ใครเป็นหนี้ใคร?'}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>{lang==='en'?'Debtor':'ผู้เป็นหนี้'}</div>
+                <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>{t('debtor', lang)}</div>
                 <div style={S.grid2}>
                   {members.map(m => (
                     <div key={m.id} onClick={() => setDFrom(m.name)}
@@ -472,7 +471,7 @@ export default function AddTransaction() {
               </div>
               <div style={{ fontSize: 20, color: '#BA7517', flexShrink: 0, paddingTop: 16 }}>→</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>{lang==='en'?'Creditor':'ผู้รับเงิน'}</div>
+                <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>{t('creditor', lang)}</div>
                 <div style={S.grid2}>
                   {members.map(m => (
                     <div key={m.id} onClick={() => setDTo(m.name)}
