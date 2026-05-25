@@ -499,24 +499,14 @@ export default function App() {
 
         {/* DIRECT DEBT */}
         {directs.length > 0 && (
-          <Section title={lang==='en'?`Direct Debt (${directs.length} items)`:`หนี้โดยตรง (${directs.length} รายการ)`}>
-            {directs.map((t, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #f5f5f0' }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: '#fff4e6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>💸</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>{t.name}</div>
-                  <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
-                    <span>{t.date}</span>
-                    <span> · {t.payer} → {t.to}</span>
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#BA7517' }}>฿{(parseFloat(t.amount) || 0).toLocaleString()}</div>
-                  <div style={{ fontSize: 11, color: '#aaa' }}>โดยตรง</div>
-                </div>
-              </div>
-            ))}
-          </Section>
+          <DirectDebtList
+            directs={directs}
+            memberNames={memberNames}
+            monthKey={monthKey}
+            lang={lang}
+            onReload={load}
+            GAS_URL={GAS_URL}
+          />
         )}
       </>}
       <BottomNav />
@@ -752,6 +742,150 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
             )
           })
       }
+    </Section>
+  )
+}
+
+// ============================================================
+//  DIRECT DEBT LIST — Edit / Delete Modal
+// ============================================================
+function DirectDebtList({ directs, memberNames, monthKey, lang, onReload, GAS_URL }) {
+  const [editingTx, setEditingTx] = useState(null)
+  const [editForm,  setEditForm]  = useState({})
+  const [saving,    setSaving]    = useState(false)
+  const [deleting,  setDeleting]  = useState(false)
+
+  const sortByDate = (arr) => [...arr].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+
+  const openEdit = (tx) => {
+    setEditingTx(tx)
+    setEditForm({ date: tx.date || '', from: tx.payer || '', to: tx.to || '', amount: tx.amount || '', note: tx.note || '' })
+  }
+
+  const handleDelete = async (tx) => {
+    if (!confirm(lang==='en'?'Delete this debt?':'ลบรายการหนี้นี้?')) return
+    setDeleting(true)
+    try {
+      const params = new URLSearchParams({ action: 'deleteTransaction', month: monthKey, created_at: normalizeCreatedAt(tx.created_at) })
+      const data = await fetch(`${GAS_URL}?${params}`).then(r => r.json())
+      if (data.status === 'ok') { setEditingTx(null); onReload() }
+      else alert('Error: ' + (data.message || 'Unknown'))
+    } catch { alert('Connection error') }
+    setDeleting(false)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editForm.from || !editForm.to || !editForm.amount) return
+    if (editForm.from === editForm.to) { alert(lang==='en'?'Must be different people':'ต้องเป็นคนละคนกัน'); return }
+    setSaving(true)
+    try {
+      const params = new URLSearchParams({
+        action:     'editTransaction',
+        month:      monthKey,
+        created_at: normalizeCreatedAt(editingTx.created_at),
+        date:       editForm.date,
+        name:       editForm.note.trim() || (lang==='en'?'Direct Debt':'หนี้โดยตรง'),
+        amount:     editForm.amount,
+        category:   '-',
+        payer:      editForm.from,
+        payment_id: '',
+        note:       editForm.note || '',
+        to:         editForm.to,
+      })
+      const data = await fetch(`${GAS_URL}?${params}`).then(r => r.json())
+      if (data.status === 'ok') { setEditingTx(null); onReload() }
+      else alert('Error: ' + (data.message || 'Unknown'))
+    } catch (e) { alert('Connection error: ' + e.message) }
+    setSaving(false)
+  }
+
+  const inp = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #e0e0d8', fontSize: 14, boxSizing: 'border-box', background: '#fff' }
+  const lbl = { fontSize: 12, color: '#888', display: 'block', marginBottom: 4 }
+
+  return (
+    <Section title={lang==='en'?`Debt (${directs.length} items)`:`หนี้ (${directs.length} รายการ)`}>
+
+      {/* EDIT MODAL */}
+      {editingTx && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', width: '100%', maxWidth: 480, borderRadius: '16px 16px 0 0', padding: '20px 20px 36px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 14, color: '#BA7517' }}>
+              {lang === 'th' ? '✏️ แก้ไขหนี้' : '✏️ Edit Debt'}
+            </div>
+
+            <div style={{ marginBottom: 10 }}>
+              <label style={lbl}>{lang === 'th' ? 'วันที่' : 'Date'}</label>
+              <input type="date" value={editForm.date} onChange={e => setEditForm(p => ({ ...p, date: e.target.value }))} style={inp} />
+            </div>
+
+            <div style={{ background: '#fff8e6', borderRadius: 10, padding: '12px 14px', marginBottom: 10, border: '1px solid #f0d080' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={lbl}>{lang === 'th' ? 'ลูกหนี้' : 'Debtor'}</label>
+                  <select value={editForm.from} onChange={e => setEditForm(p => ({ ...p, from: e.target.value }))} style={inp}>
+                    <option value="">-- {lang === 'th' ? 'เลือก' : 'Select'} --</option>
+                    {memberNames.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div style={{ fontSize: 20, color: '#BA7517', flexShrink: 0, paddingTop: 18 }}>→</div>
+                <div style={{ flex: 1 }}>
+                  <label style={lbl}>{lang === 'th' ? 'เจ้าหนี้' : 'Creditor'}</label>
+                  <select value={editForm.to} onChange={e => setEditForm(p => ({ ...p, to: e.target.value }))} style={inp}>
+                    <option value="">-- {lang === 'th' ? 'เลือก' : 'Select'} --</option>
+                    {memberNames.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 10 }}>
+              <label style={lbl}>{lang === 'th' ? 'จำนวนเงิน (บาท)' : 'Amount (THB)'}</label>
+              <input type="number" value={editForm.amount} onChange={e => setEditForm(p => ({ ...p, amount: e.target.value }))}
+                inputMode="decimal" style={{ ...inp, fontSize: 18, fontWeight: 600 }} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={lbl}>{lang === 'th' ? 'หมายเหตุ (ไม่บังคับ)' : 'Note (optional)'}</label>
+              <input type="text" value={editForm.note} onChange={e => setEditForm(p => ({ ...p, note: e.target.value }))}
+                placeholder={lang === 'th' ? 'หมายเหตุเพิ่มเติม' : 'Additional notes'} style={inp} />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setEditingTx(null)}
+                style={{ flex: 1, padding: 12, borderRadius: 10, border: '1px solid #ddd', background: '#fff', fontSize: 14, cursor: 'pointer' }}>
+                {lang === 'th' ? 'ยกเลิก' : 'Cancel'}
+              </button>
+              <button onClick={() => handleDelete(editingTx)} disabled={deleting || saving}
+                style={{ flex: 1, padding: 12, borderRadius: 10, border: 'none', background: '#D85A30', color: '#fff', fontSize: 14, fontWeight: 700, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1 }}>
+                {deleting ? '...' : '🗑'}
+              </button>
+              <button onClick={handleSaveEdit} disabled={saving || deleting}
+                style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: '#BA7517', color: '#fff', fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+                {saving ? '...' : (lang === 'th' ? '✅ บันทึก' : '✅ Save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LIST */}
+      {sortByDate(directs).map((tx, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #f5f5f0' }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: '#fff4e6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>💸</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 500 }}>{tx.name}</div>
+            <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
+              <span>{tx.date}</span>
+              <span> · {tx.payer} → {tx.to}</span>
+              {tx.note && tx.note !== tx.name && <span> · {tx.note}</span>}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#BA7517' }}>฿{(parseFloat(tx.amount) || 0).toLocaleString()}</div>
+            <div style={{ fontSize: 11, color: '#aaa' }}>{lang==='en'?'debt':'โดยตรง'}</div>
+          </div>
+          <button onClick={() => openEdit(tx)} style={{ width: 28, height: 28, border: 'none', borderRadius: 8, background: '#fff8e6', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}>✏️</button>
+        </div>
+      ))}
     </Section>
   )
 }
