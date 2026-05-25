@@ -300,6 +300,13 @@ export default function App() {
 
   useEffect(() => { load() }, [load])
 
+  // Re-fetch transaction data whenever the tab becomes visible again
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') load() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [load])
+
   useEffect(() => {
     const handler = () => setLang(getLang())
     window.addEventListener('langchange', handler)
