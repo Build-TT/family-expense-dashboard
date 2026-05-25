@@ -334,7 +334,7 @@ export default function AddTransaction() {
         </button>
         <button onClick={() => { setTab('direct'); setErrors({}) }} onTouchEnd={e => { e.preventDefault(); setTab('direct'); setErrors({}) }}
           style={{ ...(tab === 'direct' ? S.tabAct : S.tab), color: tab === 'direct' ? '#BA7517' : '#999', background: 'none' }}>
-          {lang==='en'?'💸 Direct Debt':'💸 หนี้'}
+          {lang==='en'?'💸 Debt':'💸 หนี้'}
         </button>
       </div>
 

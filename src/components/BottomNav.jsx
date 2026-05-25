@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { getLang } from '../i18n'
 
 const NAV_LABELS = {
@@ -7,8 +8,15 @@ const NAV_LABELS = {
 
 export default function BottomNav() {
   const current = window.location.pathname
-  const lang    = getLang()
-  const L       = NAV_LABELS[lang] || NAV_LABELS.th
+  const [lang, setLang] = useState(getLang())
+
+  useEffect(() => {
+    const handler = () => setLang(getLang())
+    window.addEventListener('langchange', handler)
+    return () => window.removeEventListener('langchange', handler)
+  }, [])
+
+  const L = NAV_LABELS[lang] || NAV_LABELS.th
 
   const NAV_ITEMS = [
     { path: '/',                icon: '📊', label: L.dashboard },
