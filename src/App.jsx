@@ -76,6 +76,10 @@ function resolveOwnerFromLabel(paymentLabel, payer) {
   if (!paymentLabel) return payer
   const lower = paymentLabel.toLowerCase()
   if (lower.includes('เงินสด') || lower.includes('cash')) return payer
+
+  // ✅ T1 นับเป็นรายจ่ายของ Build
+  if (lower.includes('t1')) return 'Build'
+
   const ownerMatch = paymentLabel.match(/\((.+)\)$/)
   const owner = ownerMatch ? ownerMatch[1].trim() : ''
   if (!owner || owner === 'ร่วมกัน') return 'ร่วมกัน'
