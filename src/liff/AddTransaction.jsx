@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { fetchSheet, sendToGAS, todayISO, GAS_URL, initLiff } from './utils'
 import LangToggle from '../components/LangToggle.jsx'
 import { getLang, t } from '../i18n'
@@ -21,7 +21,7 @@ const S = {
   footer:  { position: 'fixed', bottom: 60, left: 0, right: 0, padding: '12px 20px', background: '#fff', borderTop: '1px solid #eee' },
   btnSave: { width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: '#1D9E75', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' },
   btnOrg:  { width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: '#BA7517', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' },
-  btnDis:  { width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: '#ccc', color: '#fff', fontSize: 16, fontWeight: 700 },
+  btnDis:  { width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: '#ccc', color: '#fff', fontSize: 16, fontWeight: 700, pointerEvents: 'none' },
   toast:   { position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#1a1a1a', color: '#fff', padding: '10px 20px', borderRadius: 20, fontSize: 14, zIndex: 999, whiteSpace: 'nowrap' },
   err:     { color: '#D85A30', fontSize: 12, marginTop: 4 },
   tab:     { flex: 1, padding: '10px', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', borderBottom: '2px solid transparent' },
@@ -153,6 +153,7 @@ export default function AddTransaction() {
   const [payments,   setPayments]   = useState([])
   const [loading,    setLoading]    = useState(true)
   const [saving,     setSaving]     = useState(false)
+  const savingRef    = useRef(false) // synchronous lock — ป้องกัน double-fire จาก onTouchEnd+onClick
   const [toast,      setToast]      = useState('')
   const [errors,     setErrors]     = useState({})
   const [dupItems,   setDupItems]   = useState([])
@@ -160,6 +161,30 @@ export default function AddTransaction() {
   const [lang,       setLang]       = useState(getLang())
 
   useEffect(() => { initLiff('add') }, [])
+
+  // Prefill จาก duplicate button — อ่านหลัง payments โหลดแล้ว
+  useEffect(() => {
+    if (!payments.length) return
+    const raw = localStorage.getItem('prefillExpense')
+    if (!raw) return
+    try {
+      const pre = JSON.parse(raw)
+      localStorage.removeItem('prefillExpense')
+      if (pre.name)     setName(pre.name)
+      if (pre.amount)   setAmount(String(pre.amount))
+      if (pre.category) setCategory(pre.category)
+      if (pre.payer)    setPayer(pre.payer)
+      if (pre.note)     setNote(pre.note)
+      // จับคู่ label "SCB ···1234 (Oy)" กับ payment id
+      if (pre.payment_id) {
+        const found = payments.find(p => {
+          const label = `${p.name}${p.last4 ? ' ···' + p.last4 : ''} (${p.owner})`
+          return label.replace(/\s+/g,' ').trim() === pre.payment_id.replace(/\s+/g,' ').trim()
+        })
+        if (found) setPaymentId(found.id)
+      }
+    } catch {}
+  }, [payments])
   useEffect(() => {
     const h = () => setLang(getLang())
     window.addEventListener('langchange', h)
@@ -278,7 +303,12 @@ export default function AddTransaction() {
   }
 
   const handleSaveExpense = async () => {
+    if (savingRef.current) return // synchronous guard — ป้องกัน double-fire ก่อน React re-render
     if (!validate()) return
+
+    // ล็อกทันที ทั้ง ref (synchronous) และ state (สำหรับ UI)
+    savingRef.current = true
+    setSaving(true)
 
     // ตรวจสอบรายการซ้ำ — เช็ค date + amount + payment_id
     try {
@@ -296,11 +326,12 @@ export default function AddTransaction() {
       const checkData = await checkRes.json()
       if (checkData.status === 'found' && checkData.items && checkData.items.length > 0) {
         setDupItems(checkData.items)
+        savingRef.current = false
+        setSaving(false) // ปลดล็อกปุ่มเพื่อให้ยืนยันหรือยกเลิกได้
         return
       }
     } catch (e) { console.warn('dup check error', e) }
 
-    setSaving(true)
     try {
       const data = await sendToGAS({
         action: 'addTransaction', date, name: name.trim(),
@@ -315,11 +346,14 @@ export default function AddTransaction() {
         }, 1200)
       } else showToast('❌ ' + (data.message || 'เกิดข้อผิดพลาด'))
     } catch (e) { showToast('❌ เชื่อมต่อไม่ได้') }
+    savingRef.current = false
     setSaving(false)
   }
 
   const handleSaveDirect = async () => {
+    if (savingRef.current) return
     if (!validateDirect()) return
+    savingRef.current = true
     setSaving(true)
     try {
       const data = await sendToGAS({
@@ -334,6 +368,7 @@ export default function AddTransaction() {
         setTimeout(() => { setDFrom(''); setDTo(''); setDAmount(''); setDNote(''); setErrors({}) }, 1200)
       } else showToast('❌ ' + (data.message || 'เกิดข้อผิดพลาด'))
     } catch (e) { showToast('❌ เชื่อมต่อไม่ได้') }
+    savingRef.current = false
     setSaving(false)
   }
 
@@ -491,7 +526,7 @@ export default function AddTransaction() {
           </div>
         </div>
         <div style={S.footer}>
-          <button onClick={handleSaveExpense} onTouchEnd={e => { e.preventDefault(); if(!saving) handleSaveExpense() }} style={saving ? S.btnDis : S.btnSave} disabled={saving}>
+          <button onClick={e => { if(!savingRef.current) handleSaveExpense() }} onTouchEnd={e => { e.preventDefault(); if(!savingRef.current) handleSaveExpense() }} style={saving ? S.btnDis : S.btnSave} disabled={saving}>
             {saving ? 'กำลังบันทึก...' : t('saveExpense', lang)}
           </button>
         </div>
@@ -570,7 +605,7 @@ export default function AddTransaction() {
           )}
         </div>
         <div style={S.footer}>
-          <button onClick={handleSaveDirect} onTouchEnd={e => { e.preventDefault(); if(!saving) handleSaveDirect() }} style={saving ? S.btnDis : S.btnOrg} disabled={saving}>
+          <button onClick={e => { if(!savingRef.current) handleSaveDirect() }} onTouchEnd={e => { e.preventDefault(); if(!savingRef.current) handleSaveDirect() }} style={saving ? S.btnDis : S.btnOrg} disabled={saving}>
             {saving ? 'กำลังบันทึก...' : t('saveDebt', lang)}
           </button>
         </div>
