@@ -3,10 +3,10 @@ export const API_KEY  = import.meta.env.VITE_API_KEY  || ''
 export const GAS_URL  = import.meta.env.VITE_GAS_URL  || ''
 
 export const LIFF_IDS = {
-  add:        '2010175807-fSwI8IpR',
-  payments:   '2010175807-5VitVspF',
-  categories: '2010175807-mc3j20Mj',
-  payers:     '2010175807-Y8VylXtc',
+  add:        '2010315448-TImHYtBm',
+  payments:   '2010315448-TImHYtBm',
+  categories: '2010315448-TImHYtBm',
+  payers:     '2010315448-TImHYtBm',
 }
 
 const BASE = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values`
