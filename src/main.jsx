@@ -14,6 +14,11 @@ function Router() {
   const liffState = decodeURIComponent(params.get('liff.state') || '')
   const effectivePath = liffState || path
 
+  console.log('DEBUG pathname:', path)
+  console.log('DEBUG liff.state:', liffState)
+  console.log('DEBUG effectivePath:', effectivePath)
+  console.log('DEBUG full URL:', window.location.href)
+
   if (effectivePath.includes('/liff/add'))        return <AddTransaction />
   if (effectivePath.includes('/liff/payments'))   return <ManagePayments />
   if (effectivePath.includes('/liff/categories')) return <ManageCategories />
