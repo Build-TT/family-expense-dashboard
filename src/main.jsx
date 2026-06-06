@@ -14,18 +14,16 @@ function Router() {
   const liffState = decodeURIComponent(params.get('liff.state') || '')
   const effectivePath = liffState || path
 
-  console.log('DEBUG pathname:', path)
-  console.log('DEBUG liff.state:', liffState)
-  console.log('DEBUG effectivePath:', effectivePath)
-  console.log('DEBUG full URL:', window.location.href)
-
-  if (effectivePath.includes('/liff/add'))        return <AddTransaction />
-  if (effectivePath.includes('/liff/payments'))   return <ManagePayments />
-  if (effectivePath.includes('/liff/categories')) return <ManageCategories />
-  if (effectivePath.includes('/liff/payers'))     return <ManagePayers />
-  return <App />
+  // แสดง debug บนหน้าจอ
+  return (
+    <div style={{padding: 20, wordBreak: 'break-all'}}>
+      <p><b>pathname:</b> {path}</p>
+      <p><b>liff.state:</b> {liffState}</p>
+      <p><b>effectivePath:</b> {effectivePath}</p>
+      <p><b>full URL:</b> {window.location.href}</p>
+    </div>
+  )
 }
-
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <div style={{ paddingBottom: 60 }}>
