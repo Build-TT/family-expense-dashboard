@@ -10,10 +10,14 @@ import './index.css'
 
 function Router() {
   const path = window.location.pathname
-  if (path === '/liff/add')        return <AddTransaction />
-  if (path === '/liff/payments')   return <ManagePayments />
-  if (path === '/liff/categories') return <ManageCategories />
-  if (path === '/liff/payers')     return <ManagePayers />
+  const params = new URLSearchParams(window.location.search)
+  const liffState = decodeURIComponent(params.get('liff.state') || '')
+  const effectivePath = liffState || path
+
+  if (effectivePath.includes('/liff/add'))        return <AddTransaction />
+  if (effectivePath.includes('/liff/payments'))   return <ManagePayments />
+  if (effectivePath.includes('/liff/categories')) return <ManageCategories />
+  if (effectivePath.includes('/liff/payers'))     return <ManagePayers />
   return <App />
 }
 
