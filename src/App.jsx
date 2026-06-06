@@ -749,7 +749,12 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
                     payer: tx.payer, payment_id: tx.payment_id, note: tx.note || ''
                   }))
                   window.location.href = '/liff/add'
-                }} style={{ width: 28, height: 28, border: 'none', borderRadius: 8, background: '#e8f7f2', cursor: 'pointer', fontSize: 13, flexShrink: 0 }} title={lang==='th'?'Duplicate':'Duplicate'}>📋</button>
+                }} style={{ width: 28, height: 28, border: 'none', borderRadius: 8, background: '#e8f7f2', cursor: 'pointer', flexShrink: 0, display:'flex', alignItems:'center', justifyContent:'center', padding: 0 }} title="Duplicate">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="4" y="4" width="10" height="10" rx="2" stroke="#0F6E56" strokeWidth="1.5" fill="none"/>
+                    <rect x="1" y="1" width="10" height="10" rx="2" fill="#e8f7f2" stroke="#0F6E56" strokeWidth="1.5"/>
+                  </svg>
+                </button>
                 {/* Edit button */}
                 <button onClick={() => openEdit(tx)} style={{ width: 28, height: 28, border: 'none', borderRadius: 8, background: '#f5f5f0', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}>✏️</button>
               </div>
