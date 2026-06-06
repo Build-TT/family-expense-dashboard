@@ -14,13 +14,14 @@ function Router() {
   const page = new URLSearchParams(liffState.includes('?') ? liffState.split('?')[1] : '').get('page')
            || params.get('page')
 
-  if (page === 'add')        return <AddTransaction />
-  if (page === 'payments')   return <ManagePayments />
-  if (page === 'categories') return <ManageCategories />
-  if (page === 'payers')     return <ManagePayers />
-  return <App />
+  return (
+    <div style={{padding: 20, wordBreak: 'break-all'}}>
+      <p><b>full URL:</b> {window.location.href}</p>
+      <p><b>liff.state:</b> {liffState}</p>
+      <p><b>page:</b> {page || '(none)'}</p>
+    </div>
+  )
 }
-
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <div style={{ paddingBottom: 60 }}>
