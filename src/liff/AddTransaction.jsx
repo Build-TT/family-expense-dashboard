@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { fetchSheet, sendToGAS, todayISO, GAS_URL, initLiff } from './utils'
 import LangToggle from '../components/LangToggle.jsx'
 import { getLang, t } from '../i18n'
@@ -151,6 +151,7 @@ export default function AddTransaction() {
   const [payments,   setPayments]   = useState([])
   const [loading,    setLoading]    = useState(true)
   const [saving,     setSaving]     = useState(false)
+  const savingRef    = useRef(false) // synchronous lock — ป้องกัน double-fire จาก onTouchEnd+onClick
   const [toast,      setToast]      = useState('')
   const [errors,     setErrors]     = useState({})
   const [dupItems,   setDupItems]   = useState([])
@@ -234,7 +235,12 @@ export default function AddTransaction() {
   }
 
   const handleSaveExpense = async () => {
+    if (savingRef.current) return // synchronous guard — ป้องกัน double-fire ก่อน React re-render
     if (!validate()) return
+
+    // ล็อกทันที ทั้ง ref (synchronous) และ state (สำหรับ UI)
+    savingRef.current = true
+    setSaving(true)
 
     // ตรวจสอบรายการซ้ำ — เช็ค date + amount + payment_id
     try {
@@ -252,11 +258,12 @@ export default function AddTransaction() {
       const checkData = await checkRes.json()
       if (checkData.status === 'found' && checkData.items && checkData.items.length > 0) {
         setDupItems(checkData.items)
+        savingRef.current = false
+        setSaving(false) // ปลดล็อกปุ่มเพื่อให้ยืนยันหรือยกเลิกได้
         return
       }
     } catch (e) { console.warn('dup check error', e) }
 
-    setSaving(true)
     try {
       const data = await sendToGAS({
         action: 'addTransaction', date, name: name.trim(),
@@ -271,11 +278,14 @@ export default function AddTransaction() {
         }, 1200)
       } else showToast('❌ ' + (data.message || 'เกิดข้อผิดพลาด'))
     } catch (e) { showToast('❌ เชื่อมต่อไม่ได้') }
+    savingRef.current = false
     setSaving(false)
   }
 
   const handleSaveDirect = async () => {
+    if (savingRef.current) return
     if (!validateDirect()) return
+    savingRef.current = true
     setSaving(true)
     try {
       const data = await sendToGAS({
@@ -290,6 +300,7 @@ export default function AddTransaction() {
         setTimeout(() => { setDFrom(''); setDTo(''); setDAmount(''); setDNote(''); setErrors({}) }, 1200)
       } else showToast('❌ ' + (data.message || 'เกิดข้อผิดพลาด'))
     } catch (e) { showToast('❌ เชื่อมต่อไม่ได้') }
+    savingRef.current = false
     setSaving(false)
   }
 
