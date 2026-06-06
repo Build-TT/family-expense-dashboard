@@ -136,6 +136,8 @@ export default function AddTransaction() {
   const [name,       setName]       = useState('')
   const [amount,     setAmount]     = useState('')
   const [category,   setCategory]   = useState('')
+  const [catSource,  setCatSource]  = useState('')   // '' | 'ai' | 'user'
+  const [suggestedCat, setSuggestedCat] = useState('') // category the AI proposed (for the ✨ marker)
   const [payer,      setPayer]      = useState('')
   const [paymentId,  setPaymentId]  = useState('')
   const [note,       setNote]       = useState('')
@@ -210,6 +212,48 @@ export default function AddTransaction() {
 
 
 
+  // ── AI category suggestion ───────────────────────────────────────────────
+  // Ask /api/categorize for a category as the user types the item name.
+  // Fail-soft: any error just leaves manual selection untouched.
+  const suggestCategory = async (q) => {
+    const cacheKey = 'cat_' + q.toLowerCase()
+    let cat = getCache(cacheKey)
+    if (!cat) {
+      try {
+        const res = await fetch('/api/categorize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: q,
+            note: note.trim(),
+            lang,
+            categories: categories.map(c => ({ name: c.name, icon: c.icon || '' })),
+          }),
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        if (data.category && data.category !== 'none' && (data.confidence === 'high' || data.confidence === 'medium')) {
+          cat = data.category
+          setCache(cacheKey, cat, 24 * 60 * 60 * 1000) // remember for a day
+        }
+      } catch { return }
+    }
+    // Only apply if the user hasn't manually picked, and it's a real category.
+    if (cat && catSource !== 'user' && categories.some(c => c.name === cat)) {
+      setCategory(cat); setCatSource('ai'); setSuggestedCat(cat)
+    }
+  }
+
+  useEffect(() => {
+    const q = name.trim()
+    if (q.length < 2 || catSource === 'user' || categories.length === 0) return
+    const id = setTimeout(() => suggestCategory(q), 600)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, catSource, categories])
+
+  const pickCategory = (catName) => { setCategory(catName); setCatSource('user'); setSuggestedCat('') }
+
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500) }
 
   const validate = () => {
@@ -266,7 +310,7 @@ export default function AddTransaction() {
       if (data.status === 'ok') {
         showToast(lang==='en'?'✅ Saved!':'✅ บันทึกเรียบร้อยแล้ว!')
         setTimeout(() => {
-          setName(''); setAmount(''); setCategory(''); setPayer(''); setPaymentId(''); setNote('')
+          setName(''); setAmount(''); setCategory(''); setCatSource(''); setSuggestedCat(''); setPayer(''); setPaymentId(''); setNote('')
           setErrors({})
         }, 1200)
       } else showToast('❌ ' + (data.message || 'เกิดข้อผิดพลาด'))
@@ -306,7 +350,7 @@ export default function AddTransaction() {
       })
       if (data.status === 'ok') {
         setToast(lang === 'th' ? '✅ บันทึกแล้ว!' : '✅ Saved!')
-        setTimeout(() => { setName(''); setAmount(''); setCategory(''); setPayer(''); setPaymentId(''); setNote('') }, 1200)
+        setTimeout(() => { setName(''); setAmount(''); setCategory(''); setCatSource(''); setSuggestedCat(''); setPayer(''); setPaymentId(''); setNote('') }, 1200)
       } else { setToast('❌ ' + (data.message || 'Error')) }
     } catch(e) { setToast('❌ ' + e.message) }
     setSaving(false)
@@ -387,9 +431,9 @@ export default function AddTransaction() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {categories.map(c => (
                 <label key={c.id} style={category === c.name ? {...S.chipSel, WebkitTapHighlightColor:'transparent'} : {...S.chip, WebkitTapHighlightColor:'transparent'}}>
-                  <input type="radio" name="category" value={c.name} checked={category===c.name} onChange={() => setCategory(c.name)}
+                  <input type="radio" name="category" value={c.name} checked={category===c.name} onChange={() => pickCategory(c.name)}
                     style={{ position:'absolute', opacity:0, width:0, height:0 }} />
-                  {c.icon} {c.name}
+                  {c.icon} {c.name}{catSource === 'ai' && suggestedCat === c.name ? ' ✨' : ''}
                 </label>
               ))}
             </div>

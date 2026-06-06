@@ -10,8 +10,11 @@ UI is bilingual (Thai default / English).
   (all styling is inline `style={}` objects), no test framework.
 - **Backend:** Google Sheets — **reads** go directly to the Sheets API v4 (API key);
   **writes** go to a Google Apps Script (GAS) web app over HTTP GET.
+- **AI:** `@anthropic-ai/sdk` (Claude), called only from Vercel serverless functions in
+  `/api` (see "AI features" below). The API key is server-side only.
 - **Platform:** LINE LIFF (the `/liff/*` pages run inside the LINE app via the LIFF SDK).
-- **Deploy:** Vercel. `vercel.json` rewrites every path to `/index.html` (SPA).
+- **Deploy:** Vercel. `vercel.json` rewrites every path to `/index.html` (SPA). Files in
+  `/api` are auto-deployed as serverless functions.
 
 ## Commands
 
@@ -34,6 +37,7 @@ Set these in a `.env` file (Vite `VITE_` prefix) or in Vercel project settings. 
 | `VITE_SHEET_ID` | Google Spreadsheet ID (read source) |
 | `VITE_API_KEY`  | Google API key with Sheets read access |
 | `VITE_GAS_URL`  | Deployed Apps Script web-app URL (all writes) |
+| `ANTHROPIC_API_KEY` | Claude key for the `/api` functions. **No `VITE_` prefix** — server-side only, must never reach the browser. Set in Vercel env vars (and in `.env` for `vercel dev`). |
 
 LIFF IDs are **hardcoded** in `src/liff/utils.js` (`LIFF_IDS`), not env-driven.
 
@@ -125,6 +129,25 @@ labels assume exactly two (Oy & Build).
 (dashboard reference data), `add_refs` (add-page reference data). `bustCache()` clears keys
 — the dashboard refresh button busts `dash_refs` before reloading. The dashboard also
 reloads on `visibilitychange` (tab refocus).
+
+## AI features (`/api` Claude functions)
+
+Claude is called only from Vercel serverless functions in `/api` — the key stays
+server-side. The frontend POSTs JSON to `/api/<name>` and gets JSON back. Pattern:
+constrain the model with **structured outputs** (`output_config.format`, enum-limited) so
+responses are always valid; fail soft so the app works unchanged if the call errors.
+
+**`/api/categorize.js`** — suggests an expense category.
+- Input: `{ name, note, lang, categories: [{name, icon}] }`. Output: `{ category, confidence }`
+  where `category` is enum-constrained to the passed-in names (or `"none"`).
+- Model: `claude-haiku-4-5` (cheap/fast; no `effort`/`thinking` — Haiku rejects `effort`).
+- Used by `src/liff/AddTransaction.jsx`: a 600ms debounce on the item-name field calls it,
+  then pre-selects the chip (marked ✨ via `catSource === 'ai'`). A manual pick
+  (`pickCategory`, sets `catSource = 'user'`) is never overridden. Results are cached in
+  localStorage (`cat_<name>`, 1-day TTL) to avoid repeat calls.
+
+**Local dev:** `npm run dev` (Vite) does **not** run `/api` functions. Use `vercel dev`
+(`npm i -g vercel`) to exercise the AI path locally; it needs `ANTHROPIC_API_KEY` in `.env`.
 
 ## Conventions & gotchas
 
