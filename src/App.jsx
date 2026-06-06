@@ -35,21 +35,18 @@ async function fetchSheet(name) {
 }
 
 async function fetchMonthSheet(sheetName) {
-  // Sheet เดือน format: row1=settlement header, row2=settlement data, row3=tx header, row4+=tx data
   const res  = await fetch(`${SHEETS_BASE}/${encodeURIComponent(sheetName)}?key=${API_KEY}`)
   if (!res.ok) return null
   const data = await res.json()
   const rows = data.values || []
   if (rows.length < 4) return { settlement: null, transactions: [] }
 
-  // Row 2 = settlement data [month, from, to, amount, status, settled_at]
   const s = rows[1] || []
   const settlement = {
     month: s[0] || '', from: s[1] || '', to: s[2] || '',
     amount: parseFloat(s[3]) || 0, status: s[4] || 'pending', settledAt: s[5] || ''
   }
 
-  // Row 3 = headers, Row 4+ = transactions
   const headers = rows[2] || []
   const transactions = rows.slice(3).map(row => {
     const obj = {}
@@ -70,16 +67,12 @@ async function sendToGAS(payload) {
 }
 
 // ============================================================
-//  RESOLVE OWNER (จาก payment string "SCB ···1234 (Oy)")
+//  RESOLVE OWNER
 // ============================================================
 function resolveOwnerFromLabel(paymentLabel, payer) {
   if (!paymentLabel) return payer
   const lower = paymentLabel.toLowerCase()
   if (lower.includes('เงินสด') || lower.includes('cash')) return payer
-
-  // ✅ T1 นับเป็นรายจ่ายของ Build
-  if (lower.includes('t1')) return 'Build'
-
   const ownerMatch = paymentLabel.match(/\((.+)\)$/)
   const owner = ownerMatch ? ownerMatch[1].trim() : ''
   if (!owner || owner === 'ร่วมกัน') return 'ร่วมกัน'
@@ -110,7 +103,6 @@ function computeSettlement(transactions, members) {
         if (paid[owner] !== undefined) paid[owner] += amt
       }
     } else if (type === 'direct') {
-      // direct debt: NOT counted in total; debtor (payer) paid less, creditor (to) paid more
       if (paid[payer] !== undefined) paid[payer] -= amt
       if (paid[to]    !== undefined) paid[to]    += amt
     }
@@ -267,7 +259,6 @@ export default function App() {
   const load = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      // Start month fetch immediately — it does not depend on ref data
       const monthPromise = fetchMonthSheet(monthKey)
 
       const refCache = getCache('dash_refs')
@@ -275,7 +266,6 @@ export default function App() {
       if (refCache) {
         ;({ mems, cats, pays } = refCache)
       } else {
-        // Fetch all 3 in parallel while monthPromise is already running
         ;[mems, cats, pays] = await Promise.all([
           fetchSheet('members'), fetchSheet('categories'), fetchSheet('payment_methods')
         ])
@@ -304,7 +294,6 @@ export default function App() {
 
   useEffect(() => { load() }, [load])
 
-  // Re-fetch transaction data whenever the tab becomes visible again
   useEffect(() => {
     const onVisible = () => { if (document.visibilityState === 'visible') load() }
     document.addEventListener('visibilitychange', onVisible)
@@ -321,7 +310,6 @@ export default function App() {
   const catIconMap   = {}
   categories.forEach(c => { catIconMap[c.name] = c.icon || '' })
 
-  // Filter ตามเดือน (ถ้า fallback ไป transactions เดิม)
   const filtered = useMonthSheet ? transactions : transactions.filter(t => {
     if (!t.date) return false
     const d = new Date(t.date)
@@ -335,12 +323,10 @@ export default function App() {
 
   const { total, perPerson, balances, settlements } = computeSettlement(filtered, memberNames)
 
-  // กราฟหมวดหมู่ (expense เท่านั้น)
   const byCat = {}
   expenses.forEach(t => { byCat[t.category] = (byCat[t.category] || 0) + (parseFloat(t.amount) || 0) })
   const catData = Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([name, value]) => ({ name, value: Math.round(value) }))
 
-  // กราฟวิธีชำระ (expense เท่านั้น) แยกตามเจ้าของบัตร
   const byPay = {}
   expenses.forEach(t => {
     const pmStr   = t.payment_id || ''
@@ -351,7 +337,6 @@ export default function App() {
     byPay[key].total += parseFloat(t.amount) || 0
   })
 
-  // สรุปตามเจ้าของบัตร
   const byOwner = {}
   memberNames.forEach(m => byOwner[m] = 0)
   filtered.forEach(t => {
@@ -541,7 +526,6 @@ export default function App() {
 // ============================================================
 function normalizeCreatedAt(val) {
   if (!val) return ''
-  // แปลง "2026-05-24 1:02:50" → "2026-05-24 01:02:50"
   return String(val).trim().replace(
     /(\d{4}-\d{2}-\d{2})\s+(\d):(\d{2}):(\d{2})/,
     '$1 0$2:$3:$4'
@@ -560,7 +544,7 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
 
   const sortByDate = (arr) => [...arr].sort((a, b) => {
     const da = new Date(a.date || 0), db = new Date(b.date || 0)
-    return db - da // เรียงจากใหม่ไปเก่า
+    return db - da
   })
 
   const filtered = sortByDate(
@@ -569,7 +553,7 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
       .filter(tx => !searchQ || (tx.name || '').toLowerCase().includes(searchQ.toLowerCase()))
   )
 
-  const pmNameShort = (pmStr) => (pmStr || '').trim()  // แสดงชื่อพร้อมเจ้าของ
+  const pmNameShort = (pmStr) => (pmStr || '').trim()
 
   const openEdit = (tx) => {
     setEditingTx(tx)
@@ -758,6 +742,14 @@ function TransactionList({ expenses, payments, categories, catIconMap, memberNam
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#D85A30' }}>-{fmt(parseFloat(tx.amount) || 0)}</div>
                   <div style={{ fontSize: 11, color: ownerColor, fontWeight: 600 }}>{pmOwner || tx.payer}</div>
                 </div>
+                {/* Duplicate button */}
+                <button onClick={() => {
+                  localStorage.setItem('prefillExpense', JSON.stringify({
+                    name: tx.name, amount: tx.amount, category: tx.category,
+                    payer: tx.payer, payment_id: tx.payment_id, note: tx.note || ''
+                  }))
+                  window.location.href = '/liff/add'
+                }} style={{ width: 28, height: 28, border: 'none', borderRadius: 8, background: '#e8f7f2', cursor: 'pointer', fontSize: 13, flexShrink: 0 }} title={lang==='th'?'Duplicate':'Duplicate'}>📋</button>
                 {/* Edit button */}
                 <button onClick={() => openEdit(tx)} style={{ width: 28, height: 28, border: 'none', borderRadius: 8, background: '#f5f5f0', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}>✏️</button>
               </div>

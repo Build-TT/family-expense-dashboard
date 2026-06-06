@@ -159,6 +159,30 @@ export default function AddTransaction() {
   const [lang,       setLang]       = useState(getLang())
 
   useEffect(() => { initLiff('add') }, [])
+
+  // Prefill จาก duplicate button — อ่านหลัง payments โหลดแล้ว
+  useEffect(() => {
+    if (!payments.length) return
+    const raw = localStorage.getItem('prefillExpense')
+    if (!raw) return
+    try {
+      const pre = JSON.parse(raw)
+      localStorage.removeItem('prefillExpense')
+      if (pre.name)     setName(pre.name)
+      if (pre.amount)   setAmount(String(pre.amount))
+      if (pre.category) setCategory(pre.category)
+      if (pre.payer)    setPayer(pre.payer)
+      if (pre.note)     setNote(pre.note)
+      // จับคู่ label "SCB ···1234 (Oy)" กับ payment id
+      if (pre.payment_id) {
+        const found = payments.find(p => {
+          const label = `${p.name}${p.last4 ? ' ···' + p.last4 : ''} (${p.owner})`
+          return label.replace(/\s+/g,' ').trim() === pre.payment_id.replace(/\s+/g,' ').trim()
+        })
+        if (found) setPaymentId(found.id)
+      }
+    } catch {}
+  }, [payments])
   useEffect(() => {
     const h = () => setLang(getLang())
     window.addEventListener('langchange', h)
