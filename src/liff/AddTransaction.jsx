@@ -21,7 +21,7 @@ const S = {
   footer:  { position: 'fixed', bottom: 60, left: 0, right: 0, padding: '12px 20px', background: '#fff', borderTop: '1px solid #eee' },
   btnSave: { width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: '#1D9E75', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' },
   btnOrg:  { width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: '#BA7517', color: '#fff', fontSize: 16, fontWeight: 700, cursor: 'pointer' },
-  btnDis:  { width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: '#ccc', color: '#fff', fontSize: 16, fontWeight: 700 },
+  btnDis:  { width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: '#ccc', color: '#fff', fontSize: 16, fontWeight: 700, pointerEvents: 'none' },
   toast:   { position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: '#1a1a1a', color: '#fff', padding: '10px 20px', borderRadius: 20, fontSize: 14, zIndex: 999, whiteSpace: 'nowrap' },
   err:     { color: '#D85A30', fontSize: 12, marginTop: 4 },
   tab:     { flex: 1, padding: '10px', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer', borderBottom: '2px solid transparent' },
@@ -458,7 +458,7 @@ export default function AddTransaction() {
           </div>
         </div>
         <div style={S.footer}>
-          <button onClick={handleSaveExpense} onTouchEnd={e => { e.preventDefault(); if(!saving) handleSaveExpense() }} style={saving ? S.btnDis : S.btnSave} disabled={saving}>
+          <button onClick={e => { if(!savingRef.current) handleSaveExpense() }} onTouchEnd={e => { e.preventDefault(); if(!savingRef.current) handleSaveExpense() }} style={saving ? S.btnDis : S.btnSave} disabled={saving}>
             {saving ? 'กำลังบันทึก...' : t('saveExpense', lang)}
           </button>
         </div>
@@ -537,7 +537,7 @@ export default function AddTransaction() {
           )}
         </div>
         <div style={S.footer}>
-          <button onClick={handleSaveDirect} onTouchEnd={e => { e.preventDefault(); if(!saving) handleSaveDirect() }} style={saving ? S.btnDis : S.btnOrg} disabled={saving}>
+          <button onClick={e => { if(!savingRef.current) handleSaveDirect() }} onTouchEnd={e => { e.preventDefault(); if(!savingRef.current) handleSaveDirect() }} style={saving ? S.btnDis : S.btnOrg} disabled={saving}>
             {saving ? 'กำลังบันทึก...' : t('saveDebt', lang)}
           </button>
         </div>
