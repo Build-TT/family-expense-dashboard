@@ -11,8 +11,10 @@ import './index.css'
 function Router() {
   const params = new URLSearchParams(window.location.search)
   const liffState = decodeURIComponent(params.get('liff.state') || '')
+  const path = window.location.pathname.replace(/\/$/, '')
   const page = new URLSearchParams(liffState.includes('?') ? liffState.split('?')[1] : '').get('page')
            || params.get('page')
+           || (path.startsWith('/liff/') ? path.slice('/liff/'.length) : '')
 
   if (page === 'add')        return <AddTransaction />
   if (page === 'payments')   return <ManagePayments />
