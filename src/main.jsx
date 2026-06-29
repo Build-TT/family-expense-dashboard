@@ -5,6 +5,7 @@ import AddTransaction    from './liff/AddTransaction.jsx'
 import ManagePayments    from './liff/ManagePayments.jsx'
 import ManageCategories  from './liff/ManageCategories.jsx'
 import ManagePayers      from './liff/ManagePayers.jsx'
+import RecurringTransactions from './liff/RecurringTransactions.jsx'
 import BottomNav         from './components/BottomNav.jsx'
 import './index.css'
 
@@ -20,6 +21,7 @@ function Router() {
   if (page === 'payments')   return <ManagePayments />
   if (page === 'categories') return <ManageCategories />
   if (page === 'payers')     return <ManagePayers />
+  if (page === 'recurring')  return <RecurringTransactions />
   return <App />
 }
 

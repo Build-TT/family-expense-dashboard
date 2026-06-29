@@ -7,6 +7,7 @@ export const LIFF_IDS = {
   payments:   '2010315448-TImHYtBm',
   categories: '2010315448-TImHYtBm',
   payers:     '2010315448-TImHYtBm',
+  recurring:  '2010315448-TImHYtBm',
 }
 
 const BASE = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values`

@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { getLang } from '../i18n'
 
 const NAV_LABELS = {
-  th: { dashboard: 'Dashboard', add: 'เพิ่ม', payments: 'บัตร', categories: 'หมวด', payers: 'คน' },
-  en: { dashboard: 'Dashboard', add: 'Add',   payments: 'Cards', categories: 'Cats', payers: 'Members' },
+  th: { dashboard: 'Dashboard', add: 'เพิ่ม', recurring: 'รายเดือน', payments: 'บัตร', categories: 'หมวด', payers: 'คน' },
+  en: { dashboard: 'Dashboard', add: 'Add', recurring: 'Monthly', payments: 'Cards', categories: 'Cats', payers: 'Members' },
 }
 
 export default function BottomNav() {
@@ -19,11 +19,12 @@ export default function BottomNav() {
   const L = NAV_LABELS[lang] || NAV_LABELS.th
 
   const NAV_ITEMS = [
-    { path: '/',                icon: '📊', label: L.dashboard },
-    { path: '/liff/add',        icon: '➕', label: L.add },
-    { path: '/liff/payments',   icon: '💳', label: L.payments },
+    { path: '/', icon: '📊', label: L.dashboard },
+    { path: '/liff/add', icon: '➕', label: L.add },
+    { path: '/liff/recurring', icon: '🔁', label: L.recurring },
+    { path: '/liff/payments', icon: '💳', label: L.payments },
     { path: '/liff/categories', icon: '🏷', label: L.categories },
-    { path: '/liff/payers',     icon: '👤', label: L.payers },
+    { path: '/liff/payers', icon: '👤', label: L.payers },
   ]
 
   const go = (path) => { if (path !== current) window.location.href = path }
@@ -40,14 +41,15 @@ export default function BottomNav() {
         const active = current === item.path || (item.path !== '/' && current.startsWith(item.path))
         return (
           <button key={item.path} onClick={() => go(item.path)} style={{
-            flex: 1, padding: '8px 4px 6px', border: 'none', background: 'none',
+            flex: 1, padding: '7px 2px 5px', border: 'none', background: 'none',
             cursor: 'pointer', display: 'flex', flexDirection: 'column',
-            alignItems: 'center', gap: 2
+            alignItems: 'center', gap: 2, minWidth: 0
           }}>
-            <span style={{ fontSize: 20 }}>{item.icon}</span>
+            <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
             <span style={{
-              fontSize: 10, fontWeight: active ? 700 : 400,
-              color: active ? '#1D9E75' : '#999', letterSpacing: '-0.2px'
+              fontSize: 9, fontWeight: active ? 700 : 400,
+              color: active ? '#1D9E75' : '#999', letterSpacing: 0,
+              maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
             }}>{item.label}</span>
             {active && <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#1D9E75' }} />}
           </button>
