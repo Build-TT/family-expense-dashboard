@@ -46,6 +46,22 @@ function monthCount(startDate, endDate, dayOfMonth) {
   return count
 }
 
+function formatRecurringDuration(months, lang) {
+  const total = Math.max(0, parseInt(months, 10) || 0)
+  const years = Math.floor(total / 12)
+  const restMonths = total % 12
+  if (lang === 'en') {
+    const parts = []
+    if (years) parts.push(`${years} ${years === 1 ? 'year' : 'years'}`)
+    if (restMonths) parts.push(`${restMonths} ${restMonths === 1 ? 'month' : 'months'}`)
+    return parts.length ? parts.join(' ') : '0 months'
+  }
+  const parts = []
+  if (years) parts.push(`${years} ปี`)
+  if (restMonths) parts.push(`${restMonths} เดือน`)
+  return parts.length ? parts.join(' ') : '0 เดือน'
+}
+
 function samePaymentLabel(a, b) {
   return String(a || '').replace(/\s+/g, ' ').trim() === String(b || '').replace(/\s+/g, ' ').trim()
 }
@@ -251,6 +267,7 @@ export default function RecurringTransactions() {
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>{lang === 'en' ? 'Loading...' : 'กำลังโหลด...'}</div>
 
   const previewCount = monthCount(startDate, endDate, parseInt(dayOfMonth, 10))
+  const previewDuration = formatRecurringDuration(previewCount, lang)
   const isEditing = Boolean(editingId)
 
   return (
@@ -353,7 +370,7 @@ export default function RecurringTransactions() {
           )}
 
           <div style={{ fontSize: 13, color: '#666', background: '#fff', borderRadius: 8, padding: '10px 12px', border: '1px solid #e8e6ff' }}>
-            {lang === 'en' ? 'Preview' : 'ตัวอย่าง'}: {previewCount} {lang === 'en' ? 'transactions' : 'รายการ'} · {lang === 'en' ? 'monthly day' : 'ทุกวันที่'} {dayOfMonth || '-'}
+            {lang === 'en' ? 'Preview' : 'ตัวอย่าง'}: {previewCount} {lang === 'en' ? 'transactions' : 'รายการ'} · {lang === 'en' ? 'Effective for' : 'ช่วงที่มีผล'} {previewDuration} · {lang === 'en' ? 'monthly day' : 'ทุกวันที่'} {dayOfMonth || '-'}
           </div>
         </div>
 
@@ -370,13 +387,15 @@ export default function RecurringTransactions() {
 
         {rules.map(rule => {
           const active = (rule.status || 'active') === 'active'
+          const ruleCount = monthCount(rule.start_date, rule.end_date, parseInt(rule.day_of_month, 10))
+          const ruleDuration = formatRecurringDuration(ruleCount, lang)
           return (
             <div key={rule.id} style={S.card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rule.name}</div>
                   <div style={{ fontSize: 12, color: '#888', marginTop: 3 }}>
-                    ฿{Number(rule.amount || 0).toLocaleString()} · {rule.category} · {lang === 'en' ? 'day' : 'วันที่'} {rule.day_of_month}
+                    ฿{Number(rule.amount || 0).toLocaleString()} · {rule.category} · {lang === 'en' ? 'day' : 'วันที่'} {rule.day_of_month} · {ruleDuration}
                   </div>
                   <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
                     {rule.start_date} → {rule.end_date} · {active ? (lang === 'en' ? 'active' : 'ใช้งาน') : (lang === 'en' ? 'stopped' : 'หยุดแล้ว')}
