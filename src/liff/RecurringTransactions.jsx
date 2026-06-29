@@ -46,20 +46,66 @@ function monthCount(startDate, endDate, dayOfMonth) {
   return count
 }
 
-function formatRecurringDuration(months, lang) {
-  const total = Math.max(0, parseInt(months, 10) || 0)
-  const years = Math.floor(total / 12)
-  const restMonths = total % 12
+function normalizeIsoDate(value) {
+  const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})/)
+  return match ? match[0] : ''
+}
+
+function parseLocalDate(value) {
+  const iso = normalizeIsoDate(value)
+  if (!iso) return null
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+function addCalendarMonths(date, months) {
+  const y = date.getFullYear()
+  const m = date.getMonth() + months
+  const d = date.getDate()
+  const lastDay = new Date(y, m + 1, 0).getDate()
+  return new Date(y, m, Math.min(d, lastDay))
+}
+
+function addCalendarYears(date, years) {
+  const y = date.getFullYear() + years
+  const m = date.getMonth()
+  const d = date.getDate()
+  const lastDay = new Date(y, m + 1, 0).getDate()
+  return new Date(y, m, Math.min(d, lastDay))
+}
+
+function formatDateRangeDuration(startDate, endDate, lang) {
+  const start = parseLocalDate(startDate)
+  const end = parseLocalDate(endDate)
+  if (!start || !end || end < start) return lang === 'en' ? '0 days' : '0 วัน'
+
+  let years = end.getFullYear() - start.getFullYear()
+  let cursor = addCalendarYears(start, years)
+  if (cursor > end) {
+    years -= 1
+    cursor = addCalendarYears(start, years)
+  }
+
+  let months = (end.getFullYear() - cursor.getFullYear()) * 12 + (end.getMonth() - cursor.getMonth())
+  let monthCursor = addCalendarMonths(cursor, months)
+  if (monthCursor > end) {
+    months -= 1
+    monthCursor = addCalendarMonths(cursor, months)
+  }
+
+  const days = Math.floor((end - monthCursor) / (24 * 60 * 60 * 1000))
   if (lang === 'en') {
     const parts = []
     if (years) parts.push(`${years} ${years === 1 ? 'year' : 'years'}`)
-    if (restMonths) parts.push(`${restMonths} ${restMonths === 1 ? 'month' : 'months'}`)
-    return parts.length ? parts.join(' ') : '0 months'
+    if (months) parts.push(`${months} ${months === 1 ? 'month' : 'months'}`)
+    if (days) parts.push(`${days} ${days === 1 ? 'day' : 'days'}`)
+    return parts.length ? parts.join(' ') : '0 days'
   }
   const parts = []
   if (years) parts.push(`${years} ปี`)
-  if (restMonths) parts.push(`${restMonths} เดือน`)
-  return parts.length ? parts.join(' ') : '0 เดือน'
+  if (months) parts.push(`${months} เดือน`)
+  if (days) parts.push(`${days} วัน`)
+  return parts.length ? parts.join(' ') : '0 วัน'
 }
 
 function samePaymentLabel(a, b) {
@@ -267,7 +313,7 @@ export default function RecurringTransactions() {
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>{lang === 'en' ? 'Loading...' : 'กำลังโหลด...'}</div>
 
   const previewCount = monthCount(startDate, endDate, parseInt(dayOfMonth, 10))
-  const previewDuration = formatRecurringDuration(previewCount, lang)
+  const previewDuration = formatDateRangeDuration(startDate, endDate, lang)
   const isEditing = Boolean(editingId)
 
   return (
@@ -388,7 +434,7 @@ export default function RecurringTransactions() {
         {rules.map(rule => {
           const active = (rule.status || 'active') === 'active'
           const ruleCount = monthCount(rule.start_date, rule.end_date, parseInt(rule.day_of_month, 10))
-          const ruleDuration = formatRecurringDuration(ruleCount, lang)
+          const ruleDuration = formatDateRangeDuration(rule.start_date, rule.end_date, lang)
           return (
             <div key={rule.id} style={S.card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
