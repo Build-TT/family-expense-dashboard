@@ -12,6 +12,14 @@
  * - addRecurringRule
  * - updateRecurringRule
  * - deleteRecurringRule
+ * - runDueRecurringTransactions
+ *
+ * Deferred generation:
+ * - Saving a recurring rule only writes to recurring_rules.
+ * - Monthly transaction rows are created only when
+ *   processRecurringDueTransactions() runs on the due date.
+ * - Create an Apps Script time trigger for processRecurringDueTransactions()
+ *   to run once per day.
  */
 
 const RECURRING_RULES_SHEET = 'recurring_rules';
@@ -33,6 +41,7 @@ function handleRecurringLiffAction_(b) {
   if (action === 'addRecurringRule') return addRecurringRule_(b);
   if (action === 'updateRecurringRule') return updateRecurringRule_(b);
   if (action === 'deleteRecurringRule') return deleteRecurringRule_(b);
+  if (action === 'runDueRecurringTransactions') return runDueRecurringTransactions_(b && b.date);
   return null;
 }
 
@@ -58,8 +67,8 @@ function addRecurringRule_(b) {
     const sheet = recurringSheet_(ss, RECURRING_RULES_SHEET, RECURRING_RULE_HEADERS);
     sheet.appendRow(RECURRING_RULE_HEADERS.map(function(h) { return rule[h] || ''; }));
 
-    const result = recurringSyncRule_(ss, rule, 'all');
-    return { status: 'ok', id: rule.id, created: result.created, updated: result.updated, deleted: result.deleted };
+    recurringSheet_(ss, RECURRING_OCCURRENCES_SHEET, RECURRING_OCCURRENCE_HEADERS);
+    return { status: 'ok', id: rule.id, created: 0, updated: 0, deleted: 0, deferred: true };
   } catch (err) {
     return { status: 'error', message: err.message };
   } finally {
@@ -91,8 +100,8 @@ function updateRecurringRule_(b) {
       .setValues([RECURRING_RULE_HEADERS.map(function(h) { return next[h] || ''; })]);
 
     const mode = String(b.apply_mode || 'future') === 'all' ? 'all' : 'future';
-    const result = recurringSyncRule_(ss, next, mode);
-    return { status: 'ok', id: id, created: result.created, updated: result.updated, deleted: result.deleted };
+    const result = recurringSyncGeneratedOccurrences_(ss, next, mode);
+    return { status: 'ok', id: id, created: 0, updated: result.updated, deleted: result.deleted, deferred: true };
   } catch (err) {
     return { status: 'error', message: err.message };
   } finally {
@@ -163,7 +172,79 @@ function recurringCleanRule_(b) {
   };
 }
 
-function recurringSyncRule_(ss, rule, mode) {
+function runDueRecurringTransactions_(date) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const ss = recurringSpreadsheet_();
+    const result = recurringGenerateDueTransactions_(ss, recurringIsoDate_(date) || recurringToday_());
+    return { status: 'ok', date: result.date, created: result.created, skipped: result.skipped };
+  } catch (err) {
+    return { status: 'error', message: err.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function processRecurringDueTransactions() {
+  return runDueRecurringTransactions_();
+}
+
+function setupRecurringDailyTrigger() {
+  const existing = ScriptApp.getProjectTriggers().some(function(trigger) {
+    return trigger.getHandlerFunction && trigger.getHandlerFunction() === 'processRecurringDueTransactions';
+  });
+  if (!existing) {
+    ScriptApp.newTrigger('processRecurringDueTransactions')
+      .timeBased()
+      .everyDays(1)
+      .atHour(7)
+      .create();
+  }
+}
+
+function recurringGenerateDueTransactions_(ss, targetDate) {
+  const date = recurringIsoDate_(targetDate) || recurringToday_();
+  const rules = recurringObjects_(recurringSheet_(ss, RECURRING_RULES_SHEET, RECURRING_RULE_HEADERS))
+    .filter(function(rule) { return recurringRuleDueOnDate_(rule, date); });
+  const occSheet = recurringSheet_(ss, RECURRING_OCCURRENCES_SHEET, RECURRING_OCCURRENCE_HEADERS);
+  const existingKeys = {};
+  recurringRows_(occSheet).forEach(function(row) {
+    const occ = row.obj;
+    if (String(occ.status || 'active') !== 'active') return;
+    existingKeys[occ.rule_id + '|' + occ.date] = true;
+  });
+
+  let created = 0;
+  let skipped = 0;
+  rules.forEach(function(rule) {
+    const key = rule.id + '|' + date;
+    if (existingKeys[key]) {
+      skipped += 1;
+      return;
+    }
+    const month = recurringMonthKey_(date);
+    const createdAt = recurringCreatedAt_(rule.id, date);
+    recurringUpsertMonthlyTransaction_(ss, rule, date, createdAt);
+    occSheet.appendRow([rule.id, month, date, createdAt, 'active', recurringNow_()]);
+    existingKeys[key] = true;
+    created += 1;
+  });
+
+  return { date: date, created: created, skipped: skipped };
+}
+
+function recurringRuleDueOnDate_(rule, date) {
+  if (!rule || String(rule.status || 'active') !== 'active') return false;
+  const dueDate = recurringIsoDate_(date);
+  const startDate = recurringIsoDate_(rule.start_date);
+  const endDate = recurringIsoDate_(rule.end_date);
+  const day = parseInt(rule.day_of_month, 10);
+  if (!dueDate || !startDate || !endDate || !day) return false;
+  return dueDate >= startDate && dueDate <= endDate && parseInt(dueDate.slice(8, 10), 10) === day;
+}
+
+function recurringSyncGeneratedOccurrences_(ss, rule, mode) {
   const cutoff = mode === 'all' ? '0000-00-00' : recurringToday_();
   const desired = recurringDesiredDates_(rule);
   const desiredByMonth = {};
@@ -174,6 +255,7 @@ function recurringSyncRule_(ss, rule, mode) {
     return row.obj.rule_id === rule.id && String(row.obj.status || 'active') === 'active';
   });
   const seen = {};
+  const touched = {};
   let created = 0;
   let updated = 0;
   let deleted = 0;
@@ -190,6 +272,7 @@ function recurringSyncRule_(ss, rule, mode) {
         deleted += 1;
         occ.status = 'removed';
         occ.updated_at = recurringNow_();
+        touched[occ.month] = true;
         occSheet.getRange(row.rowNumber, 1, 1, RECURRING_OCCURRENCE_HEADERS.length)
           .setValues([RECURRING_OCCURRENCE_HEADERS.map(function(h) { return occ[h] || ''; })]);
       }
@@ -201,19 +284,11 @@ function recurringSyncRule_(ss, rule, mode) {
     occSheet.getRange(row.rowNumber, 1, 1, RECURRING_OCCURRENCE_HEADERS.length)
       .setValues([RECURRING_OCCURRENCE_HEADERS.map(function(h) { return occ[h] || ''; })]);
     seen[occ.month] = true;
+    touched[occ.month] = true;
     updated += 1;
   });
 
-  desired.forEach(function(date) {
-    const month = recurringMonthKey_(date);
-    if (seen[month] || date < cutoff) return;
-    const createdAt = recurringCreatedAt_(rule.id, date);
-    recurringUpsertMonthlyTransaction_(ss, rule, date, createdAt);
-    occSheet.appendRow([rule.id, month, date, createdAt, 'active', recurringNow_()]);
-    created += 1;
-  });
-
-  recurringRefreshMonths_(ss, desired.map(recurringMonthKey_));
+  recurringRefreshMonths_(ss, Object.keys(touched));
   return { created: created, updated: updated, deleted: deleted };
 }
 
