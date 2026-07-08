@@ -22,10 +22,10 @@ const FEX_SHARED_OWNER = 'ร่วมกัน';
 
 const FEX_SYSTEM_SETTINGS_HEADERS = ['key', 'value', 'updated_at'];
 const FEX_YEAR_FILES_HEADERS = ['year', 'spreadsheet_id', 'file_name', 'active', 'created_at', 'updated_at', 'note'];
-const FEX_MEMBER_HEADERS = ['id', 'name', 'aliases', 'active', 'order'];
+const FEX_MEMBER_HEADERS = ['id', 'name', 'aliases', 'active'];
 const FEX_CATEGORY_HEADERS = ['id', 'name', 'icon', 'active', 'order'];
 const FEX_PAYMENT_HEADERS = ['id', 'type', 'name', 'last4', 'owner', 'active', 'order'];
-const FEX_LEGACY_TRANSACTION_HEADERS = ['date', 'name', 'category', 'type', 'amount', 'payer', 'payment_id', 'note', 'created_at'];
+const FEX_LEGACY_TRANSACTION_HEADERS = ['date', 'name', 'category', 'type', 'amount', 'payer', 'payment_id', 'note', 'created_by'];
 const FEX_SETTLEMENT_HEADERS = ['month', 'from', 'to', 'amount', 'status', 'settled_at'];
 const FEX_TRANSACTION_HEADERS = ['date', 'name', 'category', 'type', 'amount', 'payer', 'payment_id', 'note', 'to', 'created_at'];
 
@@ -370,7 +370,7 @@ function fexAddPayment_(b) {
 function fexAddMember_(b) {
   const sheet = fexSheet_(fexEnsureSettings_(), FEX_MEMBERS_SHEET, FEX_MEMBER_HEADERS);
   const name = String(b.name || '').trim();
-  sheet.appendRow([fexUuid_('mem'), name, name.toLowerCase(), 'TRUE', fexNextOrder_(sheet)]);
+  sheet.appendRow([fexUuid_('mem'), name, name.toLowerCase(), 'TRUE']);
   fexClearCache_();
   return { status: 'ok' };
 }
@@ -411,7 +411,21 @@ function fexPaymentLabel_(paymentId, fallback) {
   if (!paymentId) return fallback || '';
   const payment = fexActivePayments_().find(function(p) { return p.id === paymentId; });
   if (!payment) return fallback || paymentId;
-  return payment.name + (payment.last4 ? ' ••••' + payment.last4 : '') + ' (' + (payment.owner || FEX_SHARED_OWNER) + ')';
+  return fexFormatPaymentLabel_(payment.name, payment.last4, payment.owner);
+}
+
+function fexFormatPaymentLabel_(name, last4, owner) {
+  return String(name || '').trim() +
+    (last4 ? ' ···' + String(last4).trim() : '') +
+    ' (' + (owner || FEX_SHARED_OWNER) + ')';
+}
+
+function fexNormalizePaymentLabel_(label) {
+  return String(label || '')
+    .replace(/[•·]+/g, '...')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
 }
 
 function fexCleanTransaction_(b, existingCreatedAt) {
@@ -450,7 +464,7 @@ function fexAddTransaction_(b) {
 function fexFindTransaction_(sheet, createdAt) {
   const key = String(createdAt || '').substring(0, 19);
   return fexRows_(sheet, 3).find(function(row) {
-    return String(row.obj.created_at || '').substring(0, 19) === key;
+    return String(row.obj.created_at || row.obj.created_by || '').substring(0, 19) === key;
   });
 }
 
@@ -462,7 +476,7 @@ function fexEditTransaction_(b) {
     if (!sheet) continue;
     const found = fexFindTransaction_(sheet, createdAt);
     if (!found) continue;
-    const tx = fexCleanTransaction_(b, found.obj.created_at);
+    const tx = fexCleanTransaction_(b, found.obj.created_at || found.obj.created_by);
     sheet.getRange(found.rowNumber, 1, 1, FEX_TRANSACTION_HEADERS.length).setValues([fexTransactionRow_(tx)]);
     updateSettlementAmount(month, ss);
     fexClearCache_();
@@ -509,7 +523,7 @@ function fexCheckDuplicate_(b) {
   const date = String(b.date || '');
   const month = String(b.month || '') || fexMonthFromDate_(date);
   const amount = Math.round((parseFloat(b.amount) || 0) * 100) / 100;
-  const paymentId = String(b.payment_id || b.paymentId || '');
+  const paymentId = fexNormalizePaymentLabel_(b.payment_id || b.paymentId || '');
   const items = [];
   fexCandidateTransactionSpreadsheets_(month).forEach(function(ss) {
     const sheet = ss.getSheetByName(month);
@@ -517,7 +531,7 @@ function fexCheckDuplicate_(b) {
     fexObjects_(sheet, 3).forEach(function(tx) {
       if (String(tx.date || '').substring(0, 10) !== date) return;
       if (Math.round((parseFloat(tx.amount) || 0) * 100) / 100 !== amount) return;
-      if (String(tx.payment_id || '') !== paymentId) return;
+      if (fexNormalizePaymentLabel_(tx.payment_id || '') !== paymentId) return;
       items.push(tx);
     });
   });

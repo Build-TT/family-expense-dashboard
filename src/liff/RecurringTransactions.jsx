@@ -205,7 +205,7 @@ export default function RecurringTransactions() {
   const paymentLabel = (id = paymentId) => {
     const p = payments.find(x => x.id === id)
     if (!p) return ''
-    return `${p.name}${p.last4 ? ` ••••${p.last4}` : ''} (${p.owner || 'ร่วมกัน'})`
+    return `${p.name}${p.last4 ? ` ···${p.last4}` : ''} (${p.owner || 'ร่วมกัน'})`
   }
 
   const resetForm = () => {
