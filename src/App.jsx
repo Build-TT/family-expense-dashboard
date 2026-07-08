@@ -211,6 +211,7 @@ export default function App() {
   const [error,       setError]       = useState('')
   const [lastRefresh, setLastRefresh] = useState(null)
   const [useMonthSheet, setUseMonthSheet] = useState(false)
+  const [dataSource, setDataSource] = useState(null)
 
   const monthKey = String(month + 1).padStart(2, '0') + '-' + year
 
@@ -239,11 +240,13 @@ export default function App() {
         setTransactions(monthData.transactions)
         setSettlement(monthData.settlement)
         setUseMonthSheet(true)
+        setDataSource(monthData.source || null)
       } else {
         const txs = await fetchSheet('transactions')
         setTransactions(txs)
         setSettlement(null)
         setUseMonthSheet(false)
+        setDataSource({ storage: 'legacy_transactions', spreadsheetId: '', sheetName: 'transactions', fallback: true })
       }
       setLastRefresh(new Date())
     } catch (e) { setError(e.message) }
@@ -319,6 +322,16 @@ export default function App() {
     if (month === 11) { setMonth(0); setYear(y => y + 1) } else setMonth(m => m + 1)
   }
   const isCurrentMonth = year === now.getFullYear() && month === now.getMonth()
+  const sourceId = dataSource && dataSource.spreadsheetId
+    ? `${dataSource.spreadsheetId.slice(0, 8)}...${dataSource.spreadsheetId.slice(-6)}`
+    : ''
+  const sourceLabel = dataSource
+    ? dataSource.storage === 'yearly'
+      ? 'yearly'
+      : dataSource.storage === 'legacy_transactions'
+        ? 'legacy transactions'
+        : 'legacy'
+    : 'unknown'
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px 16px 90px', fontFamily: 'system-ui,sans-serif', background: '#f8f8f5', minHeight: '100vh' }}>
@@ -341,6 +354,26 @@ export default function App() {
         <div style={{ fontSize: 18, fontWeight: 600, minWidth: 120, textAlign: 'center' }}>{(lang==='en'?MONTHS_EN:MONTHS_TH)[month]} {year}</div>
         <button onClick={nextMonth} style={{ ...S.navBtn, opacity: isCurrentMonth ? 0.3 : 1 }} disabled={isCurrentMonth}>›</button>
       </div>
+
+      {!loading && !error && dataSource && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          flexWrap: 'wrap', marginTop: -8, marginBottom: 16, fontSize: 12, color: '#555'
+        }}>
+          <span style={{
+            padding: '5px 9px', borderRadius: 999,
+            background: dataSource.storage === 'yearly' ? '#eaf7f2' : '#fff7e8',
+            color: dataSource.storage === 'yearly' ? '#0F6E56' : '#94620E',
+            border: `1px solid ${dataSource.storage === 'yearly' ? '#bfe6d8' : '#f0d8a8'}`,
+            fontWeight: 700
+          }}>
+            Source: {sourceLabel}{dataSource.fallback ? ' fallback' : ''}
+          </span>
+          <span style={{ color: '#888' }}>
+            {dataSource.sheetName}{sourceId ? ` @ ${sourceId}` : ''}
+          </span>
+        </div>
+      )}
 
       {error && (
         <div style={{ background: '#FCEBEB', border: '1px solid #F09595', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#A32D2D' }}>

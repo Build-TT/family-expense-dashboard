@@ -88,9 +88,16 @@ export async function fetchMonthSheet(sheetName, year) {
     const id = tryIds[i]
     try {
       const rows = await fetchValues(id, sheetName)
+      const source = {
+        storage: id === LEGACY_SHEET_ID ? 'legacy' : 'yearly',
+        spreadsheetId: id,
+        sheetName,
+        fallback: i > 0,
+        preferredSpreadsheetId: spreadsheetId,
+      }
       if (rows.length < 4) {
         if (i < tryIds.length - 1) continue
-        return { settlement: null, transactions: [] }
+        return { settlement: null, transactions: [], source }
       }
 
       const s = rows[1] || []
@@ -106,7 +113,7 @@ export async function fetchMonthSheet(sheetName, year) {
         return obj
       })
 
-      return { settlement, transactions }
+      return { settlement, transactions, source }
     } catch {}
   }
 
