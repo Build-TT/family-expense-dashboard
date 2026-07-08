@@ -4,58 +4,16 @@ import BottomNav from './components/BottomNav.jsx'
 import LangToggle from './components/LangToggle.jsx'
 import { getLang, t } from './i18n'
 import { getCache, setCache, bustCache } from './cache'
+import { fetchMonthSheet, fetchSheet } from './sheets'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from 'recharts'
 
-const SHEET_ID     = import.meta.env.VITE_SHEET_ID  || 'YOUR_SPREADSHEET_ID'
-const API_KEY      = import.meta.env.VITE_API_KEY   || 'YOUR_GOOGLE_API_KEY'
 const GAS_URL      = import.meta.env.VITE_GAS_URL   || ''
-const SHEETS_BASE  = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values`
 const MONTHS_TH    = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
 const MONTHS_EN    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const CAT_COLORS   = ['#1D9E75','#378ADD','#D85A30','#BA7517','#7F77DD','#D4537E','#639922','#0F6E56']
 const MEMBER_COLORS= ['#378ADD','#D4537E','#1D9E75','#BA7517']
 
 const fmt = (n) => '฿' + Math.round(n).toLocaleString()
-
-// ============================================================
-//  FETCH HELPERS
-// ============================================================
-async function fetchSheet(name) {
-  const res  = await fetch(`${SHEETS_BASE}/${encodeURIComponent(name)}?key=${API_KEY}`)
-  if (!res.ok) throw new Error(`Cannot fetch ${name}: ${res.status}`)
-  const data = await res.json()
-  const rows = data.values || []
-  if (rows.length < 2) return []
-  const headers = rows[0]
-  return rows.slice(1).map(row => {
-    const obj = {}
-    headers.forEach((h, i) => { obj[h] = row[i] || '' })
-    return obj
-  })
-}
-
-async function fetchMonthSheet(sheetName) {
-  const res  = await fetch(`${SHEETS_BASE}/${encodeURIComponent(sheetName)}?key=${API_KEY}`)
-  if (!res.ok) return null
-  const data = await res.json()
-  const rows = data.values || []
-  if (rows.length < 4) return { settlement: null, transactions: [] }
-
-  const s = rows[1] || []
-  const settlement = {
-    month: s[0] || '', from: s[1] || '', to: s[2] || '',
-    amount: parseFloat(s[3]) || 0, status: s[4] || 'pending', settledAt: s[5] || ''
-  }
-
-  const headers = rows[2] || []
-  const transactions = rows.slice(3).map(row => {
-    const obj = {}
-    headers.forEach((h, i) => { obj[h] = row[i] || '' })
-    return obj
-  })
-
-  return { settlement, transactions }
-}
 
 async function sendToGAS(payload) {
   const params = new URLSearchParams(
@@ -259,7 +217,7 @@ export default function App() {
   const load = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      const monthPromise = fetchMonthSheet(monthKey)
+      const monthPromise = fetchMonthSheet(monthKey, year)
 
       const refCache = getCache('dash_refs')
       let mems, cats, pays

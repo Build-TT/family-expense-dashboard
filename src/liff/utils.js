@@ -1,5 +1,4 @@
-export const SHEET_ID = import.meta.env.VITE_SHEET_ID || ''
-export const API_KEY  = import.meta.env.VITE_API_KEY  || ''
+export { API_KEY, SETTINGS_SHEET_ID as SHEET_ID, fetchSheet } from '../sheets'
 export const GAS_URL  = import.meta.env.VITE_GAS_URL  || ''
 
 export const LIFF_IDS = {
@@ -9,8 +8,6 @@ export const LIFF_IDS = {
   payers:     '2010315448-TImHYtBm',
   recurring:  '2010315448-TImHYtBm',
 }
-
-const BASE = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values`
 
 // โหลด LIFF SDK แบบ dynamic — เฉพาะเมื่อเรียก initLiff
 // ไม่ redirect login เมื่อเปิดใน browser ปกติ
@@ -38,20 +35,6 @@ export async function initLiff(pageKey) {
     console.warn('LIFF init skipped:', e.message)
     // ไม่ crash — ใช้งานได้ใน browser ปกติ
   }
-}
-
-export async function fetchSheet(name) {
-  const res  = await fetch(`${BASE}/${encodeURIComponent(name)}?key=${API_KEY}`)
-  if (!res.ok) throw new Error(`Cannot fetch ${name}: ${res.status}`)
-  const data = await res.json()
-  const rows = data.values || []
-  if (rows.length < 2) return []
-  const headers = rows[0]
-  return rows.slice(1).map(row => {
-    const obj = {}
-    headers.forEach((h, i) => { obj[h] = row[i] || '' })
-    return obj
-  })
 }
 
 export async function sendToGAS(payload) {

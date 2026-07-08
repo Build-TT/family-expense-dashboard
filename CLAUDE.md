@@ -34,7 +34,9 @@ Set these in a `.env` file (Vite `VITE_` prefix) or in Vercel project settings. 
 
 | Var | Purpose |
 |---|---|
-| `VITE_SHEET_ID` | Google Spreadsheet ID (read source) |
+| `VITE_SHEET_ID` | Legacy/default Google Spreadsheet ID (kept as fallback) |
+| `VITE_SETTINGS_SHEET_ID` | Settings spreadsheet ID; defaults to `VITE_SHEET_ID` |
+| `VITE_LEGACY_SHEET_ID` | Legacy rollback spreadsheet ID; defaults to `VITE_SHEET_ID` |
 | `VITE_API_KEY`  | Google API key with Sheets read access |
 | `VITE_GAS_URL`  | Deployed Apps Script web-app URL (all writes) |
 | `ANTHROPIC_API_KEY` | Claude key for the `/api` functions. **No `VITE_` prefix** — server-side only, must never reach the browser. Set in Vercel env vars (and in `.env` for `vercel dev`). |
@@ -58,20 +60,34 @@ Navigation is full-page `window.location.href` assignment, not client-side.
 
 ## Data model (Google Sheets)
 
-**Reference sheets** (flat, row 1 = headers): `members`, `categories`, `payment_methods`.
-Rows have an `active` (`"TRUE"`/`"FALSE"`) and `order` column; the UI filters to active and
-sorts by `order`.
+**Settings spreadsheet** (flat, row 1 = headers): `members`, `categories`,
+`payment_methods`, `system_settings`, `year_files`, `recurring_rules`,
+`recurring_occurrences`, and legacy `transactions`. Rows in reference sheets have an
+`active` (`"TRUE"`/`"FALSE"`) and `order` column; the UI filters to active and sorts by
+`order`.
+
+**Yearly transaction spreadsheets** are created by GAS when the first transaction for a
+year is written. File name format: `Family Expense - YYYY` (customizable through
+`system_settings.yearly_file_pattern`). The settings sheet `year_files` maps
+`year -> spreadsheet_id`.
+
+**Rollback:** set `system_settings.storage_mode` to `legacy`, or call
+`VITE_GAS_URL?action=setStorageMode&mode=legacy`. Future writes then go back to
+`VITE_LEGACY_SHEET_ID`/`VITE_SHEET_ID`; yearly files and mappings are not deleted. Re-enable
+with `VITE_GAS_URL?action=setStorageMode&mode=yearly`.
 
 **Transaction storage — two shapes, read with a fallback:**
 
-1. **Per-month sheets** named `MM-YYYY` (e.g. `05-2026`) — the primary path. Layout:
+1. **Per-month sheets** named `MM-YYYY` (e.g. `05-2026`) inside the mapped yearly file —
+   the primary path. Layout:
    - Row 1: settlement header
    - Row 2: settlement data `[month, from, to, amount, status, settled_at]`
    - Row 3: transaction headers
    - Row 4+: transaction rows
    See `fetchMonthSheet()` in `App.jsx`.
-2. **Legacy flat `transactions` sheet** — fallback when the month sheet is empty/missing;
-   the dashboard then filters rows client-side by month. See `load()` in `App.jsx`.
+2. **Legacy month tabs / flat `transactions` sheet** in the legacy/settings spreadsheet —
+   fallback when the yearly mapping or month sheet is missing; the dashboard filters flat
+   rows client-side by month. See `load()` in `App.jsx`.
 
 **Transaction fields:** `date`, `name`, `amount`, `category`, `type`, `payer`,
 `payment_id`, `note`, `to`, `created_at`.

@@ -1,13 +1,14 @@
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
-import AddTransaction    from './liff/AddTransaction.jsx'
-import ManagePayments    from './liff/ManagePayments.jsx'
-import ManageCategories  from './liff/ManageCategories.jsx'
-import ManagePayers      from './liff/ManagePayers.jsx'
-import RecurringTransactions from './liff/RecurringTransactions.jsx'
 import BottomNav         from './components/BottomNav.jsx'
 import './index.css'
+
+const App = lazy(() => import('./App.jsx'))
+const AddTransaction = lazy(() => import('./liff/AddTransaction.jsx'))
+const ManagePayments = lazy(() => import('./liff/ManagePayments.jsx'))
+const ManageCategories = lazy(() => import('./liff/ManageCategories.jsx'))
+const ManagePayers = lazy(() => import('./liff/ManagePayers.jsx'))
+const RecurringTransactions = lazy(() => import('./liff/RecurringTransactions.jsx'))
 
 function Router() {
   const params = new URLSearchParams(window.location.search)
@@ -25,10 +26,20 @@ function Router() {
   return <App />
 }
 
+function RouteFallback() {
+  return (
+    <div style={{ textAlign: 'center', padding: 40, color: '#888', fontFamily: 'system-ui,sans-serif' }}>
+      Loading...
+    </div>
+  )
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <div style={{ paddingBottom: 60 }}>
-      <Router />
+      <Suspense fallback={<RouteFallback />}>
+        <Router />
+      </Suspense>
     </div>
     <BottomNav />
   </React.StrictMode>

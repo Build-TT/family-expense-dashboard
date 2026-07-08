@@ -306,7 +306,8 @@ function recurringDesiredDates_(rule) {
 
 function recurringUpsertMonthlyTransaction_(ss, rule, date, createdAt) {
   const month = recurringMonthKey_(date);
-  const sheet = recurringMonthSheet_(ss, month);
+  const txSs = recurringTransactionSpreadsheetForMonth_(month);
+  const sheet = recurringMonthSheet_(txSs, month);
   const rows = sheet.getDataRange().getValues();
   const row = [date, rule.name, rule.category, rule.type || 'expense', rule.amount, rule.payer, rule.payment_id, rule.note || '', rule.to || '', createdAt];
   for (let i = 3; i < rows.length; i += 1) {
@@ -340,7 +341,8 @@ function recurringDeleteOccurrences_(ss, ruleId, cutoff) {
 }
 
 function recurringDeleteMonthlyRow_(ss, month, createdAt) {
-  const sheet = ss.getSheetByName(month);
+  const txSs = recurringTransactionSpreadsheetForMonth_(month);
+  const sheet = txSs.getSheetByName(month);
   if (!sheet) return false;
   const rows = sheet.getDataRange().getValues();
   for (let i = rows.length - 1; i >= 3; i -= 1) {
@@ -393,10 +395,16 @@ function recurringObjects_(sheet) {
 
 function recurringSpreadsheet_() {
   if (typeof SpreadsheetApp === 'undefined') throw new Error('SpreadsheetApp is unavailable');
+  if (typeof fexSettingsSpreadsheet_ === 'function') return fexSettingsSpreadsheet_();
   if (typeof SPREADSHEET_ID !== 'undefined' && SPREADSHEET_ID) return SpreadsheetApp.openById(SPREADSHEET_ID);
   if (typeof SHEET_ID !== 'undefined' && SHEET_ID) return SpreadsheetApp.openById(SHEET_ID);
   const propId = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
   return SpreadsheetApp.openById(propId || '1zv-5EH5b08fKpkfrwqOxLcGjStfWE5t-hSn-8s7LWYI');
+}
+
+function recurringTransactionSpreadsheetForMonth_(month) {
+  if (typeof transactionSpreadsheetForMonth_ === 'function') return transactionSpreadsheetForMonth_(month);
+  return recurringSpreadsheet_();
 }
 
 function recurringIsoDate_(value) {
